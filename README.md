@@ -2,14 +2,6 @@
 
 A modern, responsive portfolio website built with Gatsby, React, and Tailwind CSS. Features include dark mode support, blog functionality with MDX, and a clean, minimalist design.
 
-## Features
-
-- **Dark Mode Toggle**: Switch between light and dark themes with a simple toggle
-- **Responsive Design**: Looks great on all devices
-- **Blog with MDX**: Write blog posts using Markdown with React components
-- **Performance Optimized**: Fast loading times with Gatsby's static site generation
-- **Modern UI**: Clean, minimalist design with smooth transitions
-
 ## Technologies Used
 
 - [Gatsby](https://www.gatsbyjs.com/) - React-based static site generator
@@ -67,13 +59,6 @@ portfolio-website/
 └── package.json        # Project dependencies
 ```
 
-## Customization
-
-- **Profile Information**: Update your information in the Layout component
-- **Blog Posts**: Add MDX files to the `content/blog` directory
-- **Projects**: Update the projects array in the Work page
-- **Theme Colors**: Modify the colors in `tailwind.config.js`
-
 ## Deployment
 
 This site can be deployed to any static hosting service. For GitHub Pages:
@@ -81,7 +66,3 @@ This site can be deployed to any static hosting service. For GitHub Pages:
 ```bash
 npm run deploy
 ```
-
-## License
-
-MIT
