@@ -97,7 +97,7 @@ const BlogPostTemplate: React.FC<PageProps<BlogPostData>> = ({
 
   return (
     <Layout>
-      <article className='mt-12 sm:mt-24 max-w-3xl mx-auto'>
+      <article className='mt-18 sm:mt-8 max-w-3xl mx-auto'>
         <header className='mb-6 sm:mb-8'>
           <h1 className='text-2xl sm:text-3xl font-medium mb-2 text-gray-900 dark:text-gray-100'>
             {frontmatter.title}
@@ -111,7 +111,7 @@ const BlogPostTemplate: React.FC<PageProps<BlogPostData>> = ({
         </header>
 
         <div className='prose dark:prose-invert max-w-none prose-sm sm:prose-base'>
-          {children}
+          <MDXProvider components={components}>{children}</MDXProvider>
         </div>
       </article>
     </Layout>
