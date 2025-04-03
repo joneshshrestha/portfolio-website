@@ -110,22 +110,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {isMenuOpen && (
           <div className='md:hidden mt-4 py-4 border-t border-gray-200 dark:border-gray-700'>
             <nav className='flex flex-col space-y-4 px-4'>
-              <div className='flex items-center mb-4'>
-                <img
-                  src='/img/logo.jpg'
-                  alt='Profile'
-                  className='w-9 h-9 rounded-full object-cover mr-3'
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.src = '/img/placeholder.jpg'
-                  }}
-                />
-                <h5 className='text-sm font-medium leading-tight'>
-                  Jonesh Shrestha
-                  <br />
-                  <span className='text-xs font-medium'>Software Engineer</span>
-                </h5>
-              </div>
               <Link
                 to='/'
                 className='hover:text-primary-light dark:hover:text-primary-dark transition-colors'
@@ -162,32 +146,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 Blog
               </Link>
               <div className='pt-4 border-t border-gray-200 dark:border-gray-700'>
-                <h6 className='text-sm font-medium mb-2'>Socials</h6>
-                <div className='flex space-x-4'>
-                  <a
-                    href='https://x.com/shresthajonesh'
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    className='text-primary-light dark:text-primary-dark hover:underline'
-                  >
-                    X
-                  </a>
-                  <a
-                    href='./JoneshResume.pdf'
-                    download
-                    className='text-primary-light dark:text-primary-dark hover:underline'
-                  >
-                    Resume
-                  </a>
-                  <a
-                    href='https://github.com/joneshshrestha/'
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    className='text-primary-light dark:text-primary-dark hover:underline'
-                  >
-                    GitHub
-                  </a>
-                </div>
+                <a
+                  href='./JoneshResume.pdf'
+                  download
+                  className='text-primary-light dark:text-primary-dark hover:underline'
+                >
+                  Resume
+                </a>
               </div>
             </nav>
           </div>
