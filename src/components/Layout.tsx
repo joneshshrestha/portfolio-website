@@ -26,7 +26,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     >
       <header className='px-4 sm:px-8 py-4'>
         <div className='flex items-center justify-between max-w-5xl mx-auto mt-2'>
-          <div className='flex items-center'>
+          <Link to='/' className='flex items-center'>
             <img
               src='/img/logo.jpg'
               alt='Profile'
@@ -42,7 +42,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <br />
               <span className='text-xs font-medium'>Software Engineer</span>
             </h5>
-          </div>
+          </Link>
 
           <div className='flex items-center space-x-4 sm:space-x-6'>
             {/* Desktop Navigation */}
@@ -77,6 +77,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               >
                 Blog
               </Link>
+              <span className='border-l border-gray-300 dark:border-gray-700 h-5 self-center mx-2'></span>
+              <a
+                href='./JoneshResume.pdf'
+                download
+                className='hover:text-primary-light dark:hover:text-primary-dark transition-colors'
+              >
+                Resume
+              </a>
             </nav>
 
             <button
