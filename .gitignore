@@ -1,1 +1,36 @@
-node_modules
+# Node modules
+node_modules/
+.cache/
+public/
+
+# Environment variables
+.env*
+!.env.example
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# IDE/editor files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# MacOS files
+.DS_Store
+
+# Gatsby-specific
+# Avoid committing built files
+.gatsby/
+
+# Dependency lock files (optional)
+# Uncomment if using Yarn or pnpm and you want to ignore them
+# yarn.lock
+# pn
