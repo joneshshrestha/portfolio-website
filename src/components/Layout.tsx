@@ -196,7 +196,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       <main className='max-w-5xl mx-auto px-4 sm:px-8 py-8'>{children}</main>
 
-      <div className='border-t border-gray-200 dark:border-gray-700'></div>
+      <div className='border-t border-gray-200 dark:border-gray-700 mt-3'></div>
 
       <footer className='max-w-5xl mx-auto px-4 sm:px-8 py-8'>
         <div className='flex flex-col sm:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400 space-y-4 sm:space-y-0'>

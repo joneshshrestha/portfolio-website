@@ -58,24 +58,22 @@ const WorkPage = () => {
                 className='border-t border-gray-200 dark:border-gray-700 pt-6'
               >
                 <div className='flex flex-col md:flex-row gap-6'>
-                  <div className='md:w-1/4'>
+                  <div className='md:w-1/4 flex items-center'>
                     <a
                       href={experience.companyUrl}
-                      className='block'
+                      className='w-full h-16 flex items-center justify-center'
                       target='_blank'
                       rel='noopener noreferrer'
                     >
-                      <div className='w-full h-16 rounded-lg overflow-hidden bg-white dark:bg-gray-800 p-2'>
-                        <img
-                          src={experience.logo}
-                          alt={`${experience.company} Logo`}
-                          className='w-full h-full object-contain'
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement
-                            target.src = '/img/placeholder.jpg'
-                          }}
-                        />
-                      </div>
+                      <img
+                        src={experience.logo}
+                        alt={`${experience.company} Logo`}
+                        className='max-h-full max-w-full rounded-lg'
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.src = '/img/placeholder.jpg'
+                        }}
+                      />
                     </a>
                   </div>
                   <div className='md:w-3/4'>
