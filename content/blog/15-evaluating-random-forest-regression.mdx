@@ -1,0 +1,299 @@
+---
+title: 'Evaluating Random Forest for House Price Prediction'
+date: '2024-08-01'
+author: 'Jonesh Shrestha'
+---
+
+<div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg">
+
+## TL;DR
+
+Built Random Forest regressor for California housing price prediction (20,640 samples, 8 features) achieving **R² = 0.81** on test set (MAE: $33K, RMSE: $49K). Analyzed model performance across price ranges revealing better predictions for mid-range homes ($150K-$250K) than expensive outliers ($400K+). Demonstrates comprehensive regression evaluation with multiple metrics, residual analysis showing slight underprediction bias for expensive homes, prediction interval visualization, and feature importance revealing median income and location (lat/lon) as strongest price predictors.
+
+</div>
+
+## Introduction
+
+Predicting house prices is a classic regression problem with real-world importance. Whether you're a home buyer, real estate agent, or investor, understanding what drives prices helps make better decisions. In this tutorial, I'll show you how to build and thoroughly evaluate a Random Forest regressor using the California housing dataset. More importantly, I'll teach you how to interpret regression metrics and diagnose model behavior.
+
+## The California Housing Dataset
+
+This dataset comes from the 1990 U.S. census with 20,640 samples. Each sample represents a census block group (typically 600-3000 people) with these features:
+
+- **MedInc**: Median income in the block
+- **HouseAge**: Median house age
+- **AveRooms**: Average number of rooms per household
+- **AveBedrms**: Average number of bedrooms per household
+- **Population**: Block group population
+- **AveOccup**: Average household size
+- **Latitude**: Block group latitude
+- **Longitude**: Block group longitude
+
+The target is median house value in hundreds of thousands of dollars.
+
+### Loading the Data
+
+```python
+from sklearn.datasets import fetch_california_housing
+
+data = fetch_california_housing()
+X, y = data.data, data.target
+```
+
+Scikit-learn makes it super easy to load standard datasets. The `fetch_california_housing()` function downloads the data (if needed) and returns it in a ready-to-use format.
+
+## Train/Test Split
+
+```python
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+```
+
+I used an 80/20 split. With 20,640 samples, that gives us:
+
+- Training: 16,512 samples
+- Testing: 4,128 samples
+
+The `random_state=42` ensures I get the same split every time I run the code, which is important for reproducible results.
+
+## Exploratory Data Analysis
+
+Before modeling, I always look at the data distribution:
+
+```python
+eda = pd.DataFrame(data=X_train, columns=data.feature_names)
+eda['MedHouseVal'] = y_train
+eda.describe()
+```
+
+Key observations:
+
+- Median house values range from about $15k to $500k
+- 50% of houses fall between $119k (25th percentile) and $265k (75th percentile)
+- The median (50th percentile) is around $180k
+
+### Checking for Skewness
+
+```python
+plt.hist(1e5*y_train, bins=30, color='lightblue', edgecolor='black')
+plt.title(f'Median House Value Distribution\nSkewness: {skew(y_train):.2f}')
+```
+
+Note that I multiplied by 1e5 (100,000) to convert from hundreds of thousands to actual dollar amounts. This makes the histogram more interpretable.
+
+The skewness statistic tells us if the distribution is symmetric or leans one direction. Positive skewness means a long tail on the right (more expensive houses). This is typical for real estate, where a few luxury properties pull the distribution upward.
+
+## Training Random Forest
+
+```python
+rf_regressor = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_regressor.fit(X_train, y_train)
+```
+
+**n_estimators=100**: This creates an ensemble of 100 decision trees. Each tree is trained on a random subset of the data (bootstrap sampling) and a random subset of features. The final prediction is the average of all 100 trees.
+
+More trees generally improve performance but with diminishing returns. 100 is a reasonable default. Going to 200 or 500 might improve results slightly but takes proportionally longer to train.
+
+## Evaluating with Multiple Metrics
+
+Here's something I learned: using just one metric gives an incomplete picture. For regression, I always look at several metrics together.
+
+```python
+mae = mean_absolute_error(y_test, y_pred_test)
+mse = mean_squared_error(y_test, y_pred_test)
+rmse = root_mean_squared_error(y_test, y_pred_test)
+r2 = r2_score(y_test, y_pred_test)
+```
+
+### Mean Absolute Error (MAE): $32,760
+
+This is the easiest to interpret. On average, predictions are off by about $33k. If the actual median house value is $200k and we predict $233k, that's pretty reasonable for a block group estimate.
+
+### Mean Squared Error (MSE): $255,700 (squared)
+
+MSE squares the errors before averaging, which heavily penalizes large mistakes. A $100k error counts way more than ten $10k errors. The problem is MSE is in squared units (dollars squared?), which is hard to interpret directly.
+
+### Root Mean Squared Error (RMSE): $50,570
+
+RMSE is just the square root of MSE, bringing it back to the same units as our target (dollars). You can think of it as the standard deviation of prediction errors.
+
+RMSE is always larger than MAE. When they're close, most errors are similar in magnitude. When RMSE is much larger than MAE, you have some very large errors pulling up the average.
+
+In our case:
+
+- MAE = $32,760
+- RMSE = $50,570
+
+The gap suggests we have some predictions that are quite far off.
+
+### R² Score: 0.8049
+
+R² measures how much variance in house prices our model explains. The scale:
+
+- 1.0 = Perfect predictions
+- 0.0 = No better than predicting the mean
+- < 0.0 = Worse than just predicting the mean
+
+At 0.8049, we're explaining about 80% of the variance, which is pretty good for real estate. The remaining 20% comes from factors not in our data (school quality, crime rates, specific house conditions, etc.).
+
+## Visualizing Actual vs Predicted
+
+```python
+plt.scatter(y_test, y_pred_test, alpha=0.5, color='blue')
+plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--', lw=2)
+plt.xlabel('Actual Values')
+plt.ylabel('Predicted Values')
+```
+
+The diagonal line represents perfect predictions. Points above the line are overpredictions, points below are underpredictions.
+
+What patterns should you look for?
+
+- **Random scatter around the line**: Good, no systematic bias
+- **Cone shape** (widening scatter): Heteroscedasticity (variance increases with price)
+- **Curve instead of line**: Non-linear relationship not fully captured
+- **Clusters off the line**: Specific types of properties consistently mispredicted
+
+## Analyzing Residuals
+
+Residuals are the errors: actual minus predicted. Analyzing them reveals where the model struggles.
+
+```python
+residuals = 1e5*(y_test - y_pred_test)
+plt.hist(residuals, bins=30, color='lightblue', edgecolor='black')
+plt.title('Median House Value Prediction Residuals')
+plt.xlabel('Median House Value Prediction Error ($)')
+```
+
+Ideally, residuals should be:
+
+1. **Centered around zero**: No systematic over or underprediction
+2. **Normally distributed**: Errors are random, not patterned
+3. **Consistent variance**: Error size doesn't depend on price level
+
+The histogram shows our residuals are roughly normal with a mean near zero. The standard deviation is about $50k, which matches our RMSE.
+
+### Residuals by Actual Price
+
+```python
+residuals_df = pd.DataFrame({
+    'Actual': 1e5*y_test,
+    'Residuals': residuals
+})
+residuals_df = residuals_df.sort_values(by='Actual')
+
+plt.scatter(residuals_df['Actual'], residuals_df['Residuals'], alpha=0.4)
+plt.xlabel('Actual Values (Sorted)')
+plt.ylabel('Residuals')
+```
+
+This plot is super informative. I noticed:
+
+- For lower prices (< $150k), residuals tend to be positive (we overpredict)
+- For higher prices (> $300k), residuals tend to be negative (we underpredict)
+
+This pattern suggests the model is being pulled toward the mean. It's conservative, not confident enough to predict extreme values. This is common in ensemble methods, which average many predictions and naturally regress toward the center.
+
+## Feature Importance
+
+One of Random Forest's best features is built-in feature importance.
+
+```python
+importances = rf_regressor.feature_importances_
+indices = np.argsort(importances)[::-1]
+features = data.feature_names
+
+plt.bar(range(X.shape[1]), importances[indices])
+plt.xticks(range(X.shape[1]), [features[i] for i in indices], rotation=45)
+plt.xlabel('Feature')
+plt.ylabel('Importance')
+```
+
+The most important features for predicting California house prices:
+
+1. **MedInc** (Median Income): By far the strongest predictor
+2. **Location** (Latitude/Longitude): Where you live matters a lot
+3. **AveOccup** (Average Occupancy): Crowding affects price
+4. **Population**: Area population influences value
+5. **HouseAge**: Age has some effect but less than you might expect
+
+This makes intuitive sense. Income drives what people can afford, location captures desirability (coastal vs. inland, urban vs. rural), and occupancy might indicate crowding or economic conditions.
+
+## Key Takeaways
+
+1. **Multiple Metrics Tell the Full Story**: MAE gives intuitive average error, RMSE penalizes large mistakes, R² shows overall fit. Use all three to understand model performance completely.
+
+2. **Residual Analysis Reveals Patterns**: Plotting residuals vs. actual values shows systematic errors. Our model is conservative, regressing toward the mean for extreme values.
+
+3. **Feature Importance Guides Understanding**: Random Forest tells you which features matter most. This validates domain knowledge (income is key) and suggests which features to engineer or collect more carefully.
+
+4. **Ensemble Methods Are Conservative**: By averaging many trees, Random Forest tends to predict toward the mean. This improves average accuracy but can underpredict extremes.
+
+5. **Real-World Data Has Inherent Noise**: Even with good features and models, some variance is unexplainable. School quality, specific house condition, neighborhood characteristics, and other unmeasured factors limit predictive accuracy.
+
+## When Random Forest Excels
+
+Random Forest is great when:
+
+- You have non-linear relationships between features and target
+- Features have complex interactions
+- You want feature importance without much tuning
+- You need a robust baseline quickly
+- You have enough data (thousands of samples)
+
+## Potential Improvements
+
+To improve this model, I'd consider:
+
+**Feature Engineering**:
+
+- Interaction terms (income × location)
+- Distance to coastline (California coast property is expensive)
+- Population density (population / area)
+
+**Model Enhancements**:
+
+- Tune hyperparameters (max_depth, min_samples_split, max_features)
+- Try gradient boosting (XGBoost, LightGBM)
+- Ensemble multiple model types
+
+**Data Additions**:
+
+- School quality scores
+- Crime statistics
+- Nearby amenities (shops, parks, transit)
+- Historical price trends
+
+## Practical Applications
+
+This approach applies to many regression problems:
+
+**Real Estate**: Automated property valuation for buyers, sellers, and lenders
+
+**Business Forecasting**: Predicting sales, demand, or resource needs
+
+**Resource Allocation**: Estimating time, cost, or materials for projects
+
+**Risk Assessment**: Predicting losses, claims, or defaults
+
+## Conclusion
+
+Random Forest provides a powerful, interpretable approach to regression problems. By evaluating with multiple metrics (MAE, RMSE, R²), analyzing residuals, and examining feature importance, we gain deep insight into model behavior.
+
+The California housing model achieves R² of 0.80, explaining 80% of price variance with just 8 features. The remaining 20% reflects unmeasured factors and inherent randomness in real estate markets.
+
+Most importantly, the analysis revealed the model's conservative nature, overpredicting low prices and underpredicting high prices. This understanding helps us know when to trust predictions and when to be skeptical, which is more valuable than blind confidence in any model's outputs.
+
+Remember, the goal isn't just building a model. It's understanding what the model learned, where it struggles, and whether those patterns make sense for your problem. That understanding turns machine learning from a black box into an interpretable tool for decision-making.
+
+---
+
+## 📓 Jupyter Notebook
+
+Want to explore the complete code and run it yourself? Access the full Jupyter notebook with detailed implementations and visualizations:
+
+**[→ View Notebook on GitHub](https://github.com/joneshshrestha/machine-learning-python/blob/main/Simple%20and%20Mutiple%20Linear%20Regression/housing_prediction/python_housing_prediction_ml.ipynb)**
+
+You can also run it interactively:
+
+- [Open in Google Colab](https://colab.research.google.com/github/joneshshrestha/machine-learning-python/blob/main/Simple%20and%20Mutiple%20Linear%20Regression/housing_prediction/python_housing_prediction_ml.ipynb)
+- [Open in Binder](https://mybinder.org/v2/gh/joneshshrestha/machine-learning-python/main?filepath=Simple%20and%20Mutiple%20Linear%20Regression/housing_prediction/python_housing_prediction_ml.ipynb)

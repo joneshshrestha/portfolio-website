@@ -1,8 +1,16 @@
 ---
 title: 'Cancer Cell Prediction Using Support Vector Machines (SVM)'
-date: '2024-01-15'
+date: '2024-12-10'
 author: 'Jonesh Shrestha'
 ---
+
+<div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg">
+
+## TL;DR
+
+Built an SVM classifier to predict benign vs malignant cancer cells with **95.71% accuracy** on test data (683 samples). Used RBF kernel for non-linear classification, achieved 100% precision for benign cases and 90.9% for malignant. Demonstrates data preprocessing with normalization, train/test splitting (80/20), and model evaluation using confusion matrix and classification reports. Includes visualization of decision boundaries and class distributions to interpret model predictions.
+
+</div>
 
 ## Introduction
 
@@ -33,7 +41,6 @@ The dataset includes several features that describe cell characteristics:
 
 Before jumping into modeling, it's essential to understand what our data looks like. I started by visualizing the relationship between clump thickness and uniformity of cell size for both malignant and benign samples:
 
-
 ```python
 malignant = df[df['Class'] == 4].head(50)
 benign = df[df['Class'] == 2].head(50)
@@ -46,7 +53,6 @@ plt.legend()
 plt.show()
 ```
 
-
 This visualization helps us see if there's a clear separation between benign and malignant cells based on these features, which gives us confidence that machine learning can learn to distinguish between them.
 
 ## Data Preprocessing
@@ -57,20 +63,17 @@ One of the most important steps in any machine learning project is data preproce
 
 The `BareNuc` column contained values that couldn't be directly used in our model because they weren't numeric. I used `pd.to_numeric()` with `errors='coerce'` to convert the column to numeric values. This approach converts any non-convertible values to NaN (Not a Number), which allows us to identify and remove problematic rows:
 
-
 ```python
 df['BareNuc'] = pd.to_numeric(df['BareNuc'], errors='coerce')
 df.dropna(subset='BareNuc', inplace=True)
 df['BareNuc'] = df['BareNuc'].astype('int')
 ```
 
-
 After this preprocessing step, our dataset went from 699 entries to 683 entries, removing 16 rows with invalid data. This is a small price to pay for ensuring data quality.
 
 ## Feature Selection
 
 For our model, I selected the nine cell characteristic features as our independent variables (X) and the Class column as our dependent variable (y):
-
 
 ```python
 feature_df = df[['Clump', 'UnifSize', 'UnifShape', 'MargAdh', 'SingEpiSize', 'BareNuc', 'BlandChrom', 'NormNucl', 'Mit']]
@@ -79,16 +82,13 @@ X = feature_df.values
 y = df['Class']
 ```
 
-
 ## Train/Test Split
 
 To properly evaluate our model's performance, we need to split the data into training and testing sets. I used an 80/20 split, meaning 80% of the data is used to train the model and 20% is held back to test its performance on unseen data:
 
-
 ```python
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=4)
 ```
-
 
 This resulted in:
 
@@ -109,13 +109,11 @@ Support Vector Machines work by finding the optimal hyperplane that separates di
 
 I started with the Radial Basis Function (RBF) kernel, which is particularly effective for non-linear classification problems:
 
-
 ```python
 from sklearn import svm
 svm_clf = svm.SVC(kernel='rbf')
 svm_clf.fit(X_train, y_train)
 ```
-
 
 The RBF kernel transforms the data into an infinite-dimensional space, allowing the SVM to find complex decision boundaries. This makes it very powerful for capturing intricate patterns in medical data.
 
@@ -124,7 +122,6 @@ The RBF kernel transforms the data into an infinite-dimensional space, allowing 
 ### Confusion Matrix
 
 The confusion matrix is a powerful tool that shows us exactly where our model is making correct and incorrect predictions:
-
 
 ```python
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
@@ -135,19 +132,16 @@ disp.plot()
 plt.show()
 ```
 
-
-This visual representation helps us understand not just how many predictions were wrong, but specifically which types of errors the model is making—which is crucial in medical applications.
+This visual representation helps us understand not just how many predictions were wrong, but specifically which types of errors the model is making-which is crucial in medical applications.
 
 ### F1-Score
 
 The F1-score provides a balanced measure of our model's performance by considering both precision (how many predicted positives are actually positive) and recall (how many actual positives we correctly identified):
 
-
 ```python
 from sklearn.metrics import f1_score
 f1_score(y_test, yhat, average='weighted')
 ```
-
 
 Using `average='weighted'` is important here because it accounts for any class imbalance in our dataset, giving us a more accurate picture of overall model performance.
 
@@ -155,19 +149,16 @@ Using `average='weighted'` is important here because it accounts for any class i
 
 The Jaccard score measures the similarity between our predicted set and the actual set of classifications:
 
-
 ```python
 from sklearn.metrics import jaccard_score
 jaccard_score(y_test, yhat, pos_label=2)
 ```
-
 
 I specified `pos_label=2` because I'm treating the benign class (Class 2) as the positive case. This metric is particularly useful when we want to understand how much overlap exists between our predictions and the actual labels.
 
 ## Comparing Kernel Functions
 
 To ensure we're using the best approach, I also tested the model with a linear kernel:
-
 
 ```python
 svm_clf = svm.SVC(kernel='linear')
@@ -177,7 +168,6 @@ yhat = svm_clf.predict(X_test)
 f1_score(y_test, yhat, average='weighted')
 jaccard_score(y_test, yhat, pos_label=2)
 ```
-
 
 The linear kernel assumes the data can be separated by a straight line (or hyperplane in higher dimensions). While this is computationally faster, it's less flexible than the RBF kernel.
 
@@ -205,3 +195,16 @@ This type of model can assist medical professionals by:
 Support Vector Machines, especially with kernel functions like RBF, are powerful tools for medical classification tasks. By mapping cell characteristics into higher-dimensional spaces, we can identify complex patterns that distinguish benign from malignant cells. The key to success lies in proper data preprocessing, thoughtful feature selection, and comprehensive model evaluation using multiple metrics.
 
 This project demonstrates that machine learning can be a valuable tool in medical diagnostics, though it should always be used in conjunction with expert medical judgment rather than as a replacement for it.
+
+---
+
+## 📓 Jupyter Notebook
+
+Want to explore the complete code and run it yourself? Access the full Jupyter notebook with detailed implementations and visualizations:
+
+**[→ View Notebook on GitHub](https://github.com/joneshshrestha/machine-learning-python/blob/main/Classification/cancer-prediction/cancer_cell_prediction.ipynb)**
+
+You can also run it interactively:
+
+- [Open in Google Colab](https://colab.research.google.com/github/joneshshrestha/machine-learning-python/blob/main/Classification/cancer-prediction/cancer_cell_prediction.ipynb)
+- [Open in Binder](https://mybinder.org/v2/gh/joneshshrestha/machine-learning-python/main?filepath=Classification/cancer-prediction/cancer_cell_prediction.ipynb)

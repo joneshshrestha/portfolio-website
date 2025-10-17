@@ -1,0 +1,263 @@
+---
+title: 'Building a Complete Machine Learning Pipeline for Binary Classification'
+date: '2025-09-20'
+author: 'Jonesh Shrestha'
+---
+
+<div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg">
+
+## TL;DR
+
+Built a complete 4-stage ML pipeline for binary classification: (1) Cross-validation for model evaluation, (2) Grid search for automatic hyperparameter tuning across multiple dataset sizes, (3) Training with optimal configurations, and (4) Testing with comprehensive metrics. Compared Decision Tree, Random Forest, and Logistic Regression on datasets from 200 to 2000 samples. Random Forest achieved best test accuracy at 77.5%, while Logistic Regression offered fastest inference (0.0001s). Demonstrates systematic approach with k-fold validation, model persistence via pickle, and importance of dataset size for stable performance.
+
+</div>
+
+Machine learning pipelines can seem overwhelming at first, but with the right approach and structure, you can build a robust system that handles everything from data preprocessing to model evaluation. In this tutorial, I'll walk you through building a complete ML pipeline that includes cross-validation, hyperparameter optimization, training, and testing.
+
+## What We're Building
+
+This project implements a comprehensive binary classification pipeline that supports three popular algorithms: Decision Tree, Random Forest, and Logistic Regression. The pipeline is modular, scalable, and designed to find the best model configuration automatically.
+
+## Project Architecture
+
+The pipeline consists of four main stages:
+
+1. **Cross-Validation**: Evaluate different configurations using k-fold validation
+2. **Grid Search**: Automatically find optimal hyperparameters
+3. **Training**: Build the final model with optimized settings
+4. **Testing**: Evaluate performance on unseen data
+
+Each stage is implemented as a separate Python script, making the workflow easy to understand and modify.
+
+## Core Technologies
+
+The project uses several key Python libraries:
+
+- **scikit-learn**: For machine learning algorithms and preprocessing
+- **pandas**: For data manipulation and CSV handling
+- **numpy**: For numerical operations and array handling
+- **pickle**: For model persistence
+
+## Setting Up the Environment
+
+First, install the required dependencies:
+
+```bash
+pip install numpy pandas scikit-learn
+```
+
+## Building the Helper Functions
+
+I created an `auxiliary_functions.py` module that handles all the common operations. Here are the key functions:
+
+### Loading and Preprocessing Data
+
+```python
+def load_raw_dataset(dataset_filename: str) -> Tuple[np.ndarray, np.ndarray]:
+    df = pd.read_csv(dataset_filename)
+
+    X = df.iloc[:, :-1]
+    y = df.iloc[:, -1]
+
+    dataset_x = X.replace({"Yes": 1, "No": 0}).astype(float).to_numpy()
+    dataset_y = y.to_numpy()
+
+    return dataset_x, dataset_y
+```
+
+The function handles CSV loading and automatically converts categorical values. This simplifies the preprocessing step significantly.
+
+### Standardization
+
+```python
+def apply_normalization(raw_dataset: np.ndarray, scaler: StandardScaler | None):
+    if scaler is None:
+        scaler = StandardScaler()
+        new_X = scaler.fit_transform(raw_dataset)
+    else:
+        new_X = scaler.transform(raw_dataset)
+
+    return new_X, scaler
+```
+
+Feature standardization is crucial for algorithms like Logistic Regression. This function either fits a new scaler on training data or uses an existing one for test data, preventing data leakage.
+
+## Stage 1: Cross-Validation
+
+The first script evaluates a single configuration using k-fold cross-validation:
+
+```bash
+python part_01_cross_validation.py hyperparameters.json training_data_small.csv 5
+```
+
+This script:
+
+1. Loads the dataset and hyperparameters
+2. Splits data into k folds
+3. Trains on k-1 folds and validates on the remaining fold
+4. Repeats k times so each fold serves as validation once
+5. Reports average metrics across all folds
+
+Cross-validation gives you a reliable estimate of model performance and helps detect overfitting early.
+
+## Stage 2: Grid Search
+
+The grid search script automates hyperparameter tuning:
+
+```bash
+python part_02_grid_search.py hyperparameters.json training_data_{}.csv 5
+```
+
+The grid search:
+
+1. Iterates through all hyperparameter combinations
+2. Tests each combination using cross-validation
+3. Tracks performance metrics for every configuration
+4. Identifies the best hyperparameters for each algorithm
+
+### Grid Search Results
+
+After running grid search on all datasets, I found interesting patterns:
+
+**Decision Trees**
+
+- Best configuration: Gini criterion with max_depth=8 on the large dataset
+- Validation accuracy: 64.5%
+- Very sensitive to depth (None leads to overfitting)
+
+**Random Forest**
+
+- Best configuration: 100 trees with max_depth=2 on small dataset
+- Validation accuracy: 70.0%
+- More trees generally improved performance but increased training time
+
+**Logistic Regression**
+
+- Best configuration: No penalty with C=4.0 on large dataset
+- Validation accuracy: 70.5%
+- Very fast training and inference times
+- Consistent performance across dataset sizes
+
+## Stage 3: Training
+
+After identifying optimal hyperparameters, train the final model:
+
+```bash
+python part_03_training.py hyperparameters.json training_data_large.csv scaler_lr.pkl classifier_lr.pkl
+```
+
+This script:
+
+1. Loads the full training dataset
+2. Applies standardization and fits the scaler
+3. Trains the classifier with optimal hyperparameters
+4. Saves both the scaler and classifier to disk
+
+The pickle format allows you to load these trained models later without retraining.
+
+## Stage 4: Testing
+
+Finally, evaluate the trained model on unseen data:
+
+```bash
+python part_04_testing.py testing_data.csv scaler_lr.pkl classifier_lr.pkl
+```
+
+This script loads the saved scaler and classifier, then reports comprehensive metrics:
+
+- Accuracy
+- Precision, Recall, F1-Score per class
+- Macro-averaged metrics
+- Confusion matrix analysis
+- Inference time
+
+### Final Test Results
+
+Here are the results on the test dataset:
+
+| Classifier         | Accuracy | Macro Avg Recall | Macro Avg Precision | Macro Avg F1 | Inference Time |
+| ------------------ | -------- | ---------------- | ------------------- | ------------ | -------------- |
+| Decision Tree      | 75.50%   | 75.50%           | 75.50%              | 75.50%       | 0.0004 s       |
+| Random Forest      | 77.50%   | 77.50%           | 78.77%              | 77.25%       | 0.0014 s       |
+| Logistic Regressor | 76.50%   | 76.50%           | 76.50%              | 76.50%       | 0.0001 s       |
+
+Random Forest achieved the best performance with 77.5% accuracy, though Logistic Regression was faster during inference.
+
+## Key Insights and Best Practices
+
+### Dataset Size Matters
+
+The experiments revealed that model performance improved with larger datasets:
+
+- Small dataset (200 samples): High variance, unstable results
+- Medium dataset (400 samples): Better generalization
+- Large dataset (800 samples): Most reliable performance
+- Very large dataset (2000 samples): Best accuracy and stability
+
+### Hyperparameter Impact
+
+**Decision Trees**:
+
+- Shallow trees (depth 2-4) generalized better than deep trees
+- Gini and entropy criteria performed similarly
+- Unrestricted depth led to severe overfitting
+
+**Random Forest**:
+
+- More trees consistently improved performance
+- Shallow individual trees (depth 2) with many trees (100) worked best
+- Training time scaled linearly with tree count
+
+**Logistic Regression**:
+
+- L1 regularization performed slightly better than L2
+- C value around 1.0-4.0 gave optimal results
+- Very fast and stable across all dataset sizes
+
+### Computational Efficiency
+
+Training times varied significantly:
+
+- Decision Tree: ~0.003-0.015 seconds (fastest)
+- Logistic Regression: ~0.004-0.016 seconds (fast)
+- Random Forest: ~0.02-0.33 seconds (slowest but most accurate)
+
+For production systems with tight latency requirements, Logistic Regression offers the best balance of speed and accuracy.
+
+## Common Pitfalls to Avoid
+
+1. **Data Leakage**: Never fit the scaler on test data. Always use the scaler fitted on training data.
+
+2. **Overfitting**: Deep decision trees and complex models may achieve 100% training accuracy but fail on validation data.
+
+3. **Imbalanced Folds**: The splitting function ensures balanced partition sizes, preventing some folds from being too small.
+
+4. **Ignoring Standardization**: Algorithms like Logistic Regression perform poorly without standardization.
+
+## Conclusion
+
+This machine learning pipeline demonstrates a systematic approach to binary classification. The modular design makes it easy to experiment with different configurations, while the automated grid search saves time and finds optimal hyperparameters.
+
+Key takeaways:
+
+1. **Cross-validation** provides reliable performance estimates
+2. **Grid search** automates hyperparameter tuning efficiently
+3. **Model persistence** with pickle enables deployment without retraining
+4. **Multiple dataset sizes** help understand scalability
+5. **Comprehensive metrics** give a complete picture of model performance
+
+The Random Forest classifier achieved the best test accuracy at 77.5%, though Logistic Regression offers a faster alternative with only slightly lower accuracy. The choice between them depends on your specific requirements for speed versus accuracy.
+
+---
+
+### 📓 Interactive Notebook
+
+Explore the complete implementation with all four pipeline stages:
+
+- [View on GitHub](https://github.com/joneshshrestha/artificial-intelligence/tree/main/ML%20Binary%20Classification)
+- [Run Part 1: Cross-Validation](https://github.com/joneshshrestha/artificial-intelligence/blob/main/ML%20Binary%20Classification/part_01_cross_validation.py)
+- [Run Part 2: Grid Search](https://github.com/joneshshrestha/artificial-intelligence/blob/main/ML%20Binary%20Classification/part_02_grid_search.py)
+- [Run Part 3: Training](https://github.com/joneshshrestha/artificial-intelligence/blob/main/ML%20Binary%20Classification/part_03_training.py)
+- [Run Part 4: Testing](https://github.com/joneshshrestha/artificial-intelligence/blob/main/ML%20Binary%20Classification/part_04_testing.py)
+
+_Check the repository for the complete code, helper functions, and sample datasets._

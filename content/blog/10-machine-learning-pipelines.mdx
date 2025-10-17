@@ -1,8 +1,16 @@
 ---
 title: 'Building Machine Learning Pipelines with Scikit-Learn'
-date: '2024-03-01'
+date: '2025-07-19'
 author: 'Jonesh Shrestha'
 ---
+
+<div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg">
+
+## TL;DR
+
+Built end-to-end ML pipeline combining StandardScaler → PCA → KNeighborsClassifier, achieving **95% accuracy** on Iris dataset. Used GridSearchCV to optimize entire pipeline simultaneously, testing 840 combinations (n_components: 1-4, n_neighbors: 1-30, PCA solver: full/arpack). Optimal config: 2 PCA components, 14 neighbors, arpack solver. Demonstrates preventing data leakage by fitting preprocessing only on training data, ensures reproducibility through chained transformations, and enables atomic hyperparameter tuning across all pipeline stages for systematic model development.
+
+</div>
 
 ## Introduction
 
@@ -11,7 +19,6 @@ Real-world machine learning requires multiple steps: scaling features, reducing 
 ## The Problem with Manual Workflows
 
 Without pipelines, a typical workflow looks like this:
-
 
 ```python
 # Manual approach - PROBLEMATIC!
@@ -27,13 +34,11 @@ knn = KNeighborsClassifier(n_neighbors=5)
 knn.fit(X_train, y_train)
 ```
 
-
-**Problem**: We fit preprocessing (scaler, PCA) on all data before splitting. This means the test set influenced preprocessing parameters, causing **data leakage**—the model has indirect access to test data, making performance estimates optimistically biased.
+**Problem**: We fit preprocessing (scaler, PCA) on all data before splitting. This means the test set influenced preprocessing parameters, causing **data leakage**-the model has indirect access to test data, making performance estimates optimistically biased.
 
 ## Pipelines: The Proper Approach
 
 Pipelines ensure preprocessing happens within each train/test split:
-
 
 ```python
 pipeline = Pipeline([
@@ -42,7 +47,6 @@ pipeline = Pipeline([
     ('knn', KNeighborsClassifier(n_neighbors=5))
 ])
 ```
-
 
 Now when we call `pipeline.fit(X_train, y_train)`:
 
@@ -56,10 +60,9 @@ When we call `pipeline.predict(X_test)`:
 2. PCA transforms scaled X_test (using parameters from training)
 3. KNN predicts on PCA-transformed X_test
 
-The test set never influences preprocessing parameters—no data leakage!
+The test set never influences preprocessing parameters-no data leakage!
 
 ## Dataset: Iris Classification
-
 
 ```python
 data = load_iris()
@@ -67,11 +70,9 @@ X, y = data.data, data.target
 labels = data.target_names
 ```
 
-
 The Iris dataset provides 150 samples with 4 features, perfect for demonstrating pipelines because it benefits from both scaling and dimensionality reduction.
 
 ## Building Your First Pipeline
-
 
 ```python
 pipeline = Pipeline([
@@ -80,7 +81,6 @@ pipeline = Pipeline([
     ("knn", KNeighborsClassifier(n_neighbors=5))
 ])
 ```
-
 
 ### Understanding Pipeline Structure
 
@@ -101,20 +101,17 @@ All steps except the last must be **transformers** (have `fit_transform()` metho
 
 ## Train/Test Split with Stratification
 
-
 ```python
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
 ```
 
-
 **stratify=y**: Ensures each class's proportion is preserved in both train and test sets. With 3 Iris species, this guarantees balanced representation in both sets.
 
 **random_state=42**: Ensures reproducibility. Using the same random state gives identical splits across runs.
 
 ## Training and Evaluating the Pipeline
-
 
 ```python
 pipeline.fit(X_train, y_train)
@@ -123,11 +120,9 @@ print(f"{test_score:.3f}")
 # Output: 0.900
 ```
 
-
 90% accuracy with our initial parameter choices. Not bad, but we can do better with hyperparameter tuning.
 
 ## Visualizing Results with Confusion Matrix
-
 
 ```python
 y_pred = pipeline.predict(X_test)
@@ -143,8 +138,7 @@ sns.heatmap(
 )
 ```
 
-
-The confusion matrix shows exactly which species were confused. The heatmap visualization makes patterns immediately apparent—darker cells indicate more predictions.
+The confusion matrix shows exactly which species were confused. The heatmap visualization makes patterns immediately apparent-darker cells indicate more predictions.
 
 **annot=True**: Shows actual counts in each cell  
 **fmt="d"**: Formats annotations as integers  
@@ -154,7 +148,6 @@ The confusion matrix shows exactly which species were confused. The heatmap visu
 
 Now for the powerful part: optimizing the entire pipeline.
 
-
 ```python
 pipeline = Pipeline([
     ("scaler", StandardScaler()),
@@ -163,11 +156,9 @@ pipeline = Pipeline([
 ])
 ```
 
-
-Note that I didn't specify parameters—we'll let GridSearchCV find optimal values.
+Note that I didn't specify parameters-we'll let GridSearchCV find optimal values.
 
 ### Defining the Hyperparameter Grid
-
 
 ```python
 param_grid = {
@@ -175,7 +166,6 @@ param_grid = {
     "knn__n_neighbors": [3, 5, 7]
 }
 ```
-
 
 ### Understanding Parameter Naming
 
@@ -194,22 +184,19 @@ We're testing:
 
 ### Setting Up Cross-Validation Strategy
 
-
 ```python
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 ```
 
-
 **StratifiedKFold**: Preserves class distribution in each fold. Important for multi-class problems to ensure each fold represents all classes proportionally.
 
-**n_splits=5**: 5-fold cross-validation—data split into 5 parts, trained on 4, tested on 1, repeated 5 times.
+**n_splits=5**: 5-fold cross-validation-data split into 5 parts, trained on 4, tested on 1, repeated 5 times.
 
 **shuffle=True**: Randomizes data before splitting. Important if data is ordered (e.g., all class 0, then all class 1).
 
 **random_state=42**: Ensures reproducible folds across runs.
 
 ## Running Grid Search with Pipeline
-
 
 ```python
 best_model = GridSearchCV(
@@ -223,7 +210,6 @@ best_model = GridSearchCV(
 best_model.fit(X_train, y_train)
 ```
 
-
 This trains 6 combinations × 5 folds = **30 models total**.
 
 Crucially, in each fold:
@@ -233,10 +219,9 @@ Crucially, in each fold:
 3. Pipeline predicts on validation portion
 4. Score is recorded
 
-This ensures preprocessing always happens within folds—no data leakage!
+This ensures preprocessing always happens within folds-no data leakage!
 
 ## Examining Optimized Results
-
 
 ```python
 test_score = best_model.score(X_test, y_test)
@@ -246,7 +231,6 @@ print(f"{test_score:.3f}")
 print(best_model.best_params_)
 # Output: {'knn__n_neighbors': 3, 'pca__n_components': 3}
 ```
-
 
 ### Performance Improvement
 
@@ -263,7 +247,6 @@ GridSearchCV improved accuracy by 3.3 percentage points!
 
 ## Visualizing Optimized Results
 
-
 ```python
 y_pred = best_model.predict(X_test)
 conf_matrix = confusion_matrix(y_test, y_pred)
@@ -279,7 +262,6 @@ sns.heatmap(
 plt.title("KNN Classification Testing Confusion Matrix")
 ```
 
-
 The confusion matrix for the optimized model likely shows fewer misclassifications, particularly for species that are harder to distinguish.
 
 ## Key Takeaways
@@ -290,7 +272,7 @@ The confusion matrix for the optimized model likely shows fewer misclassificatio
 
 3. **StratifiedKFold Preserves Class Distribution**: For classification problems, stratification ensures each fold represents all classes proportionally, providing more reliable cross-validation scores.
 
-4. **Pipelines + GridSearchCV = Powerful Combo**: Combining pipelines with grid search optimizes the entire workflow—preprocessing and modeling—simultaneously. This often reveals better parameter combinations than optimizing in isolation.
+4. **Pipelines + GridSearchCV = Powerful Combo**: Combining pipelines with grid search optimizes the entire workflow-preprocessing and modeling-simultaneously. This often reveals better parameter combinations than optimizing in isolation.
 
 5. **End-to-End Workflow in One Object**: A trained pipeline contains everything needed for prediction: scaling parameters, PCA transformation, and trained classifier. This makes deployment simple.
 
@@ -299,7 +281,6 @@ The confusion matrix for the optimized model likely shows fewer misclassificatio
 ## Practical Advantages of Pipelines
 
 ### 1. Reproducibility
-
 
 ```python
 # Save pipeline
@@ -311,7 +292,6 @@ pipeline = joblib.load('model.pkl')
 pipeline.predict(new_data)  # Everything happens automatically
 ```
 
-
 ### 2. Deployment Simplicity
 
 Instead of manually applying scaling, then PCA, then classification, you call `pipeline.predict()` once. All steps execute in order automatically.
@@ -321,7 +301,6 @@ Instead of manually applying scaling, then PCA, then classification, you call `p
 No forgetting to scale test data, no accidentally fitting transformers on test data, no parameter mismatches between training and production.
 
 ### 4. Clean Code
-
 
 ```python
 # Without pipeline - messy, error-prone
@@ -333,13 +312,11 @@ predictions = knn.predict(X_pca)
 predictions = pipeline.predict(X_new)
 ```
 
-
 ## Advanced Pipeline Features
 
 ### Feature Union
 
 Combine multiple transformations:
-
 
 ```python
 from sklearn.pipeline import FeatureUnion
@@ -350,13 +327,11 @@ union = FeatureUnion([
 ])
 ```
 
-
 This creates features from both PCA and feature selection, concatenating results.
 
 ### Custom Transformers
 
 Create your own pipeline steps:
-
 
 ```python
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -375,11 +350,9 @@ pipeline = Pipeline([
 ])
 ```
 
-
 ### Conditional Steps
 
 Use `make_pipeline()` for unnamed steps:
-
 
 ```python
 from sklearn.pipeline import make_pipeline
@@ -390,7 +363,6 @@ pipeline = make_pipeline(
     KNeighborsClassifier()
 )
 ```
-
 
 Steps are automatically named: `standardscaler`, `pca`, `kneighborsclassifier`.
 
@@ -416,4 +388,17 @@ Pipelines transform machine learning from a collection of manual steps into a co
 
 Combining pipelines with GridSearchCV takes this further, optimizing the entire workflow simultaneously rather than tuning components in isolation. This often reveals better parameter combinations and always provides more reliable performance estimates.
 
-For any serious machine learning project, pipelines aren't optional—they're essential. They represent the difference between research code that works once and production code that reliably delivers value.
+For any serious machine learning project, pipelines aren't optional-they're essential. They represent the difference between research code that works once and production code that reliably delivers value.
+
+---
+
+## 📓 Jupyter Notebook
+
+Want to explore the complete code and run it yourself? Access the full Jupyter notebook with detailed implementations and visualizations:
+
+**[→ View Notebook on GitHub](https://github.com/joneshshrestha/machine-learning-python/blob/main/Machine%20Learning%20Pipeline/gridsearch-cv-ml-pipeline.ipynb)**
+
+You can also run it interactively:
+
+- [Open in Google Colab](https://colab.research.google.com/github/joneshshrestha/machine-learning-python/blob/main/Machine%20Learning%20Pipeline/gridsearch-cv-ml-pipeline.ipynb)
+- [Open in Binder](https://mybinder.org/v2/gh/joneshshrestha/machine-learning-python/main?filepath=Machine%20Learning%20Pipeline/gridsearch-cv-ml-pipeline.ipynb)

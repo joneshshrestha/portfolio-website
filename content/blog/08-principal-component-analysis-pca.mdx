@@ -1,8 +1,16 @@
 ---
 title: 'Understanding Principal Component Analysis (PCA) for Dimensionality Reduction'
-date: '2024-02-20'
+date: '2025-06-28'
 author: 'Jonesh Shrestha'
 ---
+
+<div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg">
+
+## TL;DR
+
+Applied PCA to reduce Iris dataset from 4D to 2D while retaining **95.8% variance** (PC1: 72.77%, PC2: 23.03%). Demonstrates dimensionality reduction fundamentals with bivariate visualization of principal component axes, covariance matrix analysis, and transformation of data into new coordinate system. Shows practical benefits: reduced computational cost, improved visualization, preserved class separation in lower dimensions. Includes scree plot for explained variance analysis and comparison of original vs transformed feature spaces.
+
+</div>
 
 ## Introduction
 
@@ -22,7 +30,6 @@ Think of it like rotating your data to find the most informative viewing angles.
 
 ### Generating Correlated Data
 
-
 ```python
 np.random.seed(42)
 mean = [0, 0]
@@ -30,48 +37,41 @@ cov = [[3, 2], [2, 2]]
 X = np.random.multivariate_normal(mean=mean, cov=cov, size=200)
 ```
 
-
 Let me explain this covariance matrix:
 
-- **Diagonal elements [3, 2]**: These are variances—how spread out each variable is
+- **Diagonal elements [3, 2]**: These are variances-how spread out each variable is
   - Variance of X1 = 3 (more spread)
   - Variance of X2 = 2 (less spread)
-- **Off-diagonal elements [2, 2]**: This is covariance—how X1 and X2 vary together
+- **Off-diagonal elements [2, 2]**: This is covariance-how X1 and X2 vary together
   - Covariance = 2 (positive relationship)
 
 The positive covariance means when X1 increases, X2 tends to increase too. This creates the elliptical pattern you see in scatter plots of correlated data.
 
-Setting `np.random.seed(42)` ensures reproducibility—critical for demonstrating concepts consistently.
+Setting `np.random.seed(42)` ensures reproducibility-critical for demonstrating concepts consistently.
 
 ### Performing PCA
-
 
 ```python
 pca = PCA(n_components=2)
 X_pca = pca.fit_transform(X)
 ```
 
-
 This fits PCA to our data and transforms it into the principal component space.
 
 ### Understanding Principal Components
-
 
 ```python
 components = pca.components_
 ```
 
-
-The components are unit vectors showing the direction of each principal component. Each row is one principal component—a direction in the original feature space.
+The components are unit vectors showing the direction of each principal component. Each row is one principal component-a direction in the original feature space.
 
 ### Explained Variance Ratio
-
 
 ```python
 pca.explained_variance_ratio_
 # Output: [0.91, 0.09]  (approximately)
 ```
-
 
 This tells us that:
 
@@ -82,12 +82,10 @@ If we only keep the first principal component, we retain 91% of the information 
 
 ### Projecting Data onto Principal Components
 
-
 ```python
 projection_pc1 = np.dot(X, components[0])
 projection_pc2 = np.dot(X, components[1])
 ```
-
 
 Although the method is called `dot()`, this is actually matrix multiplication since our matrices are 2D. For each data point, we calculate how far it projects along each principal component direction.
 
@@ -95,12 +93,10 @@ Think of projection like casting a shadow: if you shine a light perpendicular to
 
 ### Visualizing Projections
 
-
 ```python
 x_pc1 = projection_pc1 * components[0][0]
 x_pc2 = projection_pc1 * components[0][1]
 ```
-
 
 These calculations convert scalar projections back into 2D coordinates for visualization. We multiply the projection distance by the component direction to get the actual coordinates of the projected points.
 
@@ -116,7 +112,6 @@ This clearly demonstrates how PC1 captures most variation (projected points spre
 
 ### Loading and Standardizing Data
 
-
 ```python
 iris = datasets.load_iris()
 X = iris.data
@@ -126,7 +121,6 @@ target_names = iris.target_names
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 ```
-
 
 The Iris dataset has 4 features:
 
@@ -139,17 +133,14 @@ The Iris dataset has 4 features:
 
 ### Reducing to 2D
 
-
 ```python
 pca_iris = PCA(n_components=2)
 X_pca = pca_iris.fit_transform(X_scaled)
 ```
 
-
 We're reducing from 4D to 2D, making the data visualizable while retaining most information.
 
 ### Visualizing Iris Species in 2D
-
 
 ```python
 colors = ['navy', 'turquoise', 'darkorange']
@@ -157,7 +148,6 @@ colors = ['navy', 'turquoise', 'darkorange']
 for color, i, target_name in zip(colors, [0,1,2], target_names):
     plt.scatter(X_pca[y == i, 0], X_pca[y == i, 1], color=color, s=50, ec='k', alpha=0.7, lw=lw, label=target_name)
 ```
-
 
 ### Understanding Boolean Masking
 
@@ -170,12 +160,10 @@ This elegant numpy technique filters data by class without explicit loops.
 
 ### Information Retained
 
-
 ```python
 100 * pca_iris.explained_variance_ratio_.sum()
 # Output: ~95.8%
 ```
-
 
 Amazing! Just 2 components capture 95.8% of the original 4D variance. This dramatic reduction enables visualization with minimal information loss.
 
@@ -183,17 +171,14 @@ The 2D plot clearly separates the three Iris species, showing that the two most 
 
 ## Determining Optimal Number of Components
 
-
 ```python
 pca = PCA()  # No n_components specified = keep all
 pca.fit_transform(X_scaled)
 ```
 
-
 By not specifying `n_components`, we get all principal components. This lets us analyze how much each component contributes.
 
 ### Scree Plot: Visualizing Explained Variance
-
 
 ```python
 explained_variance_ratio = pca.explained_variance_ratio_
@@ -201,17 +186,14 @@ explained_variance_ratio = pca.explained_variance_ratio_
 plt.bar(x=range(1, len(explained_variance_ratio)+1), height=explained_variance_ratio, alpha=1, align='center', label='PC explained variance ratio')
 ```
 
-
 The bar chart shows each component's contribution. Typically, the first few components explain most variance, with later components adding decreasing amounts.
 
 ### Cumulative Explained Variance
-
 
 ```python
 cumulative_variance = np.cumsum(explained_variance_ratio)
 plt.step(range(1, 5), cumulative_variance, where='mid', linestyle='--', lw=3, color='red', label='Cumulative Explained Variance')
 ```
-
 
 The `np.cumsum()` function calculates running totals:
 
@@ -220,7 +202,7 @@ The `np.cumsum()` function calculates running totals:
 - PC1 + PC2 + PC3: 99% variance
 - All 4 PCs: 100% variance
 
-This cumulative plot helps decide how many components to keep. A common approach is choosing enough components to explain 90-95% of variance—a good balance of dimensionality reduction and information retention.
+This cumulative plot helps decide how many components to keep. A common approach is choosing enough components to explain 90-95% of variance-a good balance of dimensionality reduction and information retention.
 
 ## Key Takeaways
 
@@ -295,4 +277,17 @@ Principal Component Analysis provides an elegant solution to dimensionality redu
 
 Through our bivariate example, we saw how PCA identifies the direction of maximum spread and can project data onto these directions. With the Iris dataset, we reduced 4D data to 2D while retaining 96% of information, creating a clear visualization that distinguishes between species.
 
-The key to successful PCA is understanding what you're giving up—interpretability and some information—and what you're gaining—reduced dimensionality, efficiency, and visualization capability. When used appropriately, PCA is an invaluable tool in the machine learning toolkit.
+The key to successful PCA is understanding what you're giving up-interpretability and some information-and what you're gaining-reduced dimensionality, efficiency, and visualization capability. When used appropriately, PCA is an invaluable tool in the machine learning toolkit.
+
+---
+
+## 📓 Jupyter Notebook
+
+Want to explore the complete code and run it yourself? Access the full Jupyter notebook with detailed implementations and visualizations:
+
+**[→ View Notebook on GitHub](https://github.com/joneshshrestha/machine-learning-python/blob/main/Dimensionalty%20Reduction%20Algorithms/PCA/principle_component_analysis.ipynb)**
+
+You can also run it interactively:
+
+- [Open in Google Colab](https://colab.research.google.com/github/joneshshrestha/machine-learning-python/blob/main/Dimensionalty%20Reduction%20Algorithms/PCA/principle_component_analysis.ipynb)
+- [Open in Binder](https://mybinder.org/v2/gh/joneshshrestha/machine-learning-python/main?filepath=Dimensionalty%20Reduction%20Algorithms/PCA/principle_component_analysis.ipynb)

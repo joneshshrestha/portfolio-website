@@ -1,0 +1,433 @@
+
+> personal-portfolio@1.0.0 develop
+> gatsby develop
+
+success compile gatsby files - 0.865s
+
+[2K[1A[2K[Gsuccess load gatsby config - 0.039s
+
+[2K[1A[2K[Gwarn Plugin gatsby-plugin-mdx is not compatible with your gatsby version 5.14.1
+- It requires gatsby@^4.0.0-next
+
+[2K[1A[2K[Gwarn Plugin gatsby-plugin-mdx is not compatible with your gatsby version 5.14.1
+- It requires gatsby@^4.0.0-next
+
+[2K[1A[2K[G
+ ERROR #11329  API.NODE.VALIDATION
+
+Your plugins must export known APIs from their gatsby-node.
+
+See https://www.gatsbyjs.com/docs/reference/config-files/gatsby-node/ for the
+list of Gatsby node APIs.
+
+- The plugin gatsby-plugin-mdx@3.20.0 is using the API
+"unstable_shouldOnCreateNode" which is not a known API.
+
+Some of the following may help fix the error(s):
+
+- Rename "unstable_shouldOnCreateNode" -> "shouldOnCreateNode"
+
+
+[2K[1A[2K[Gsuccess load plugins - 1.823s
+
+[2K[1A[2K[Gsuccess onPreInit - 0.003s
+
+[2K[1A[2K[Gsuccess initialize cache - 0.043s
+
+[2K[1A[2K[Gsuccess copy gatsby files - 0.073s
+
+[2K[1A[2K[Gsuccess Compiling Gatsby Functions - 0.240s
+
+[2K[1A[2K[Gsuccess onPreBootstrap - 0.260s
+
+[2K[1A[2K[Gsuccess createSchemaCustomization - 0.015s
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.001s
+
+[2K[1A[2K[Gsuccess source and transform nodes - 4.750s
+
+[2K[1A[2K[Gsuccess building schema - 0.100s
+
+[2K[1A[2K[Gsuccess createPages - 0.019s
+
+[2K[1A[2K[Gsuccess createPagesStatefully - 0.036s
+
+[2K[1A[2K[Ginfo Total nodes: 124, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.000s
+
+[2K[1A[2K[Gsuccess write out redirect data - 0.001s
+
+[2K[1A[2K[Gsuccess onPostBootstrap - 0.001s
+
+[2K[1A[2K[Ginfo bootstrap finished - 9.613s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.000s
+
+[2K[1A[2K[Gsuccess extract queries from components - 1.217s
+
+[2K[1A[2K[Gsuccess write out requires - 0.003s
+
+[2K[1A[2K[Gwarn Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly:
+https://github.com/browserslist/update-db#readme
+
+[2K[1A[2K[G⠀
+
+[2K[1A[2K[GYou can now view personal-portfolio in the browser.
+
+[2K[1A[2K[G⠀
+
+[2K[1A[2K[G  http://localhost:8000/
+
+[2K[1A[2K[G⠀
+
+[2K[1A[2K[GView GraphiQL, an in-browser IDE, to explore your site's data and schema
+
+[2K[1A[2K[G⠀
+
+[2K[1A[2K[G  http://localhost:8000/___graphql
+
+[2K[1A[2K[G⠀
+
+[2K[1A[2K[GNote that the development build is not optimized.
+
+[2K[1A[2K[GTo create a production build, use gatsby build
+
+[2K[1A[2K[G⠀
+
+[2K[1A[2K[Gsuccess Building development bundle - 9.274s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.160s - 3/28 174.96/s
+
+[2K[1A[2K[Gsuccess Generating GraphQL and TypeScript types - 0.225s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.005s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.094s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.006s - 1/25 3887.27/s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.001s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.061s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.002s - 1/24 10869.36/s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.003s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.132s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.010s - 1/23 2214.72/s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.015s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.287s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.015s - 2/22 1515.85/s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.001s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.061s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.002s - 1/20 12583.89/s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.005s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.073s
+
+[2K[1A[2K[Gsuccess write out requires - 0.000s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.002s - 1/19 11737.45/s
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/portfolio.tsx
+
+[2K[1A[2K[Gsuccess building schema - 0.125s
+
+[2K[1A[2K[Gsuccess createPages - 0.052s
+
+[2K[1A[2K[Ginfo Total nodes: 124, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.002s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.007s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.201s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 0.491s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.004s - 0/18 4238.62/s
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/portfolio.tsx
+
+[2K[1A[2K[Gsuccess building schema - 0.246s
+
+[2K[1A[2K[Gsuccess createPages - 0.041s
+
+[2K[1A[2K[Ginfo Total nodes: 124, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.000s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.001s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.174s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 0.407s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.017s - 0/18 1078.25/s
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/portfolio.tsx
+
+[2K[1A[2K[Gsuccess building schema - 0.214s
+
+[2K[1A[2K[Gsuccess createPages - 0.025s
+
+[2K[1A[2K[Ginfo Total nodes: 124, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.002s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.003s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.095s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 0.286s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.004s - 0/18 4736.48/s
+
+[2K[1A[2K[Ginfo deleted file at /Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/
+images/profile-old.jpg
+
+[2K[1A[2K[Gsuccess building schema - 0.123s
+
+[2K[1A[2K[Gsuccess createPages - 0.020s
+
+[2K[1A[2K[Ginfo Total nodes: 122, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.000s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.000s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.076s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.006s - 0/18 2810.16/s
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/portfolio.tsx
+
+[2K[1A[2K[Gsuccess building schema - 0.694s
+
+[2K[1A[2K[Gsuccess createPages - 0.027s
+
+[2K[1A[2K[Ginfo Total nodes: 122, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.000s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.001s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.123s
+
+[2K[1A[2K[Gsuccess write out requires - 0.002s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 1.146s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.006s - 0/18 3137.73/s
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/portfolio.tsx
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/portfolio.tsx
+
+<i> [webpack-dev-middleware] wait until bundle finished: /img/b.jpg
+<i> [webpack-dev-middleware] wait until bundle finished: /commons.css?1760722415693
+[2K[1A[2K[Gsuccess building schema - 0.109s
+
+[2K[1A[2K[Gsuccess createPages - 0.015s
+
+[2K[1A[2K[Ginfo Total nodes: 122, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.001s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.000s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.045s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 0.350s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.007s - 0/18 2768.06/s
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/portfolio.tsx
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/portfolio.tsx
+
+[2K[1A[2K[Gsuccess building schema - 0.553s
+
+[2K[1A[2K[Gsuccess createPages - 0.008s
+
+[2K[1A[2K[Ginfo Total nodes: 122, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.000s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.000s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.058s
+
+[2K[1A[2K[Gsuccess write out requires - 0.000s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 0.386s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.011s - 0/18 1679.08/s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.006s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.078s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.004s - 1/18 4721.62/s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.001s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.072s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.002s - 1/17 8856.28/s
+
+[2K[1A[2K[Ginfo changed file at /Users/joneshshrestha/Desktop/GitHub/portfolio-website/cont
+ent/blog/08-principal-component-analysis-pca.mdx
+
+[2K[1A[2K[Ginfo changed file at /Users/joneshshrestha/Desktop/GitHub/portfolio-website/cont
+ent/blog/06-credit-card-fraud-detection.mdx
+
+[2K[1A[2K[Ginfo changed file at /Users/joneshshrestha/Desktop/GitHub/portfolio-website/cont
+ent/blog/09-hyperparameter-tuning-gridsearchcv.mdx
+
+[2K[1A[2K[Ginfo changed file at /Users/joneshshrestha/Desktop/GitHub/portfolio-website/cont
+ent/blog/15-evaluating-random-forest-regression.mdx
+
+[2K[1A[2K[Ginfo changed file at /Users/joneshshrestha/Desktop/GitHub/portfolio-website/cont
+ent/blog/05-drug-prediction-decision-trees.mdx
+
+[2K[1A[2K[Ginfo changed file at /Users/joneshshrestha/Desktop/GitHub/portfolio-website/cont
+ent/blog/11-exploratory-data-analysis-preprocessing.mdx
+
+[2K[1A[2K[Ginfo changed file at /Users/joneshshrestha/Desktop/GitHub/portfolio-website/cont
+ent/blog/04-customer-segmentation-kmeans-clustering.mdx
+
+[2K[1A[2K[Ginfo changed file at /Users/joneshshrestha/Desktop/GitHub/portfolio-website/cont
+ent/blog/10-machine-learning-pipelines.mdx
+
+[2K[1A[2K[Ginfo changed file at /Users/joneshshrestha/Desktop/GitHub/portfolio-website/cont
+ent/blog/13-softmax-regression-multiclass.mdx
+
+[2K[1A[2K[Ginfo changed file at /Users/joneshshrestha/Desktop/GitHub/portfolio-website/cont
+ent/blog/01-cancer-prediction-with-svm.mdx
+
+[2K[1A[2K[Ginfo changed file at /Users/joneshshrestha/Desktop/GitHub/portfolio-website/cont
+ent/blog/07-dbscan-hdbscan-clustering.mdx
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/portfolio.tsx
+
+[2K[1A[2K[Ginfo changed file at /Users/joneshshrestha/Desktop/GitHub/portfolio-website/cont
+ent/blog/14-tsne-umap-visualization.mdx
+
+[2K[1A[2K[Ginfo changed file at /Users/joneshshrestha/Desktop/GitHub/portfolio-website/cont
+ent/blog/12-document-classification-knn-rocchio.mdx
+
+[2K[1A[2K[Ginfo changed file at /Users/joneshshrestha/Desktop/GitHub/portfolio-website/cont
+ent/blog/03-co2-emission-prediction-linear-regression.mdx
+
+[2K[1A[2K[Gsuccess building schema - 0.073s
+
+[2K[1A[2K[Gsuccess createPages - 0.015s
+
+[2K[1A[2K[Ginfo Total nodes: 122, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.000s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.000s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.036s
+
+[2K[1A[2K[Gsuccess write out requires - 0.000s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 0.430s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.345s - 0/16 46.36/s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.019s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.191s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.005s - 1/16 3244.09/s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.001s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.069s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 3.713s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.014s - 0/15 1061.71/s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.001s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.064s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 0.641s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.027s - 0/15 562.10/s
+

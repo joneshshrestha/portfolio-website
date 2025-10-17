@@ -1,0 +1,350 @@
+
+> personal-portfolio@1.0.0 develop
+> gatsby develop
+
+success compile gatsby files - 0.761s
+
+[2K[1A[2K[Gsuccess load gatsby config - 0.030s
+
+[2K[1A[2K[Gwarn Plugin gatsby-plugin-mdx is not compatible with your gatsby version 5.14.1
+- It requires gatsby@^4.0.0-next
+
+[2K[1A[2K[Gwarn Plugin gatsby-plugin-mdx is not compatible with your gatsby version 5.14.1
+- It requires gatsby@^4.0.0-next
+
+[2K[1A[2K[G
+ ERROR #11329  API.NODE.VALIDATION
+
+Your plugins must export known APIs from their gatsby-node.
+
+See https://www.gatsbyjs.com/docs/reference/config-files/gatsby-node/ for the
+list of Gatsby node APIs.
+
+- The plugin gatsby-plugin-mdx@3.20.0 is using the API
+"unstable_shouldOnCreateNode" which is not a known API.
+
+Some of the following may help fix the error(s):
+
+- Rename "unstable_shouldOnCreateNode" -> "shouldOnCreateNode"
+
+
+[2K[1A[2K[Gsuccess load plugins - 1.359s
+
+[2K[1A[2K[Gsuccess onPreInit - 0.004s
+
+[2K[1A[2K[Gsuccess initialize cache - 0.037s
+
+[2K[1A[2K[Gsuccess copy gatsby files - 0.084s
+
+[2K[1A[2K[Gsuccess Compiling Gatsby Functions - 0.220s
+
+[2K[1A[2K[Gsuccess onPreBootstrap - 0.234s
+
+[2K[1A[2K[Gsuccess createSchemaCustomization - 0.009s
+
+[2K[1A[2K[Gsuccess Clean up stale nodes - 0.018s - 28/0 0.00/s
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.007s
+
+[2K[1A[2K[Gsuccess source and transform nodes - 0.205s
+
+[2K[1A[2K[Gsuccess building schema - 0.291s
+
+[2K[1A[2K[Gsuccess createPages - 0.056s
+
+[2K[1A[2K[Gsuccess createPagesStatefully - 0.076s
+
+[2K[1A[2K[Ginfo Total nodes: 122, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.001s
+
+[2K[1A[2K[Gsuccess write out redirect data - 0.002s
+
+[2K[1A[2K[Gsuccess onPostBootstrap - 0.001s
+
+[2K[1A[2K[Ginfo bootstrap finished - 4.870s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.001s
+
+[2K[1A[2K[Gsuccess extract queries from components - 2.123s
+
+[2K[1A[2K[Gsuccess write out requires - 0.009s
+
+[2K[1A[2K[Gwarn Browserslist: browsers data (caniuse-lite) is 8 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly:
+https://github.com/browserslist/update-db#readme
+
+[2K[1A[2K[G⠀
+
+[2K[1A[2K[GYou can now view personal-portfolio in the browser.
+
+[2K[1A[2K[G⠀
+
+[2K[1A[2K[G  http://localhost:8000/
+
+[2K[1A[2K[G⠀
+
+[2K[1A[2K[GView GraphiQL, an in-browser IDE, to explore your site's data and schema
+
+[2K[1A[2K[G⠀
+
+[2K[1A[2K[G  http://localhost:8000/___graphql
+
+[2K[1A[2K[G⠀
+
+[2K[1A[2K[GNote that the development build is not optimized.
+
+[2K[1A[2K[GTo create a production build, use gatsby build
+
+[2K[1A[2K[G⠀
+
+[2K[1A[2K[Gsuccess Building development bundle - 6.265s
+
+[2K[1A[2K[Gsuccess Writing page-data.json and slice-data.json files to public directory -
+0.095s - 1/1 10.57/s
+
+[2K[1A[2K[Gsuccess Generating GraphQL and TypeScript types - 0.241s
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/uses.tsx
+
+[2K[1A[2K[Gsuccess building schema - 0.295s
+
+[2K[1A[2K[Gsuccess createPages - 0.040s
+
+[2K[1A[2K[Ginfo Total nodes: 122, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.000s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.001s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.131s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 1.518s
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/uses.tsx
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.016s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.448s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess building schema - 0.253s
+
+[2K[1A[2K[Gsuccess createPages - 0.222s
+
+[2K[1A[2K[Ginfo Total nodes: 122, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.010s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.001s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.122s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 0.863s
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/uses.tsx
+
+[2K[1A[2K[Gsuccess building schema - 0.186s
+
+[2K[1A[2K[Gsuccess createPages - 0.020s
+
+[2K[1A[2K[Ginfo Total nodes: 122, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.000s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.001s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.063s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 1.077s
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/uses.tsx
+
+[2K[1A[2K[Gsuccess building schema - 0.135s
+
+[2K[1A[2K[Gsuccess createPages - 0.013s
+
+[2K[1A[2K[Ginfo Total nodes: 122, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.000s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.003s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.077s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 0.802s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.001s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.113s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/uses.tsx
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 0.721s
+
+[2K[1A[2K[Gsuccess building schema - 0.079s
+
+[2K[1A[2K[Gsuccess createPages - 0.008s
+
+[2K[1A[2K[Ginfo Total nodes: 122, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.000s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.000s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.026s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 0.068s
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/uses.tsx
+
+[2K[1A[2K[Gsuccess building schema - 0.197s
+
+[2K[1A[2K[Gsuccess createPages - 0.029s
+
+[2K[1A[2K[Ginfo Total nodes: 122, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.000s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.000s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.173s
+
+[2K[1A[2K[Gsuccess write out requires - 0.000s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 1.670s
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/uses.tsx
+
+[2K[1A[2K[Gsuccess building schema - 0.201s
+
+[2K[1A[2K[Gsuccess createPages - 0.027s
+
+[2K[1A[2K[Ginfo Total nodes: 122, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.001s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.001s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.076s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 0.505s
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/uses.tsx
+
+[2K[1A[2K[Gsuccess building schema - 0.117s
+
+[2K[1A[2K[Gsuccess createPages - 0.015s
+
+[2K[1A[2K[Ginfo Total nodes: 122, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.001s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.001s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.103s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 1.826s
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/uses.tsx
+
+<i> [webpack-dev-middleware] wait until bundle finished: /commons.5494cbb2639224ef2247.hot-update.js
+<i> [webpack-dev-middleware] wait until bundle finished: /component---src-pages-uses-tsx.5494cbb2639224ef2247.hot-update.js
+<i> [webpack-dev-middleware] wait until bundle finished: /component---src-pages-uses-tsxhead.5494cbb2639224ef2247.hot-update.js
+[2K[1A[2K[Gsuccess building schema - 0.076s
+
+[2K[1A[2K[Gsuccess createPages - 0.009s
+
+[2K[1A[2K[Ginfo Total nodes: 122, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.000s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.000s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.029s
+
+[2K[1A[2K[Gsuccess write out requires - 0.000s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 0.201s
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/uses.tsx
+
+[2K[1A[2K[Gsuccess building schema - 0.090s
+
+[2K[1A[2K[Gsuccess createPages - 0.010s
+
+[2K[1A[2K[Ginfo Total nodes: 122, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.000s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.001s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.097s
+
+[2K[1A[2K[Gsuccess write out requires - 0.000s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 0.459s
+
+[2K[1A[2K[Ginfo changed file at
+/Users/joneshshrestha/Desktop/GitHub/portfolio-website/src/pages/uses.tsx
+
+[2K[1A[2K[Gsuccess building schema - 0.078s
+
+[2K[1A[2K[Gsuccess createPages - 0.008s
+
+[2K[1A[2K[Ginfo Total nodes: 122, SitePage nodes: 28 (use --verbose for breakdown)
+
+[2K[1A[2K[Gsuccess Checking for changed pages - 0.000s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.000s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.053s
+
+[2K[1A[2K[Gsuccess write out requires - 0.000s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 0.542s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.004s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.099s
+
+[2K[1A[2K[Gsuccess write out requires - 0.001s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 2.741s
+
+[2K[1A[2K[Gsuccess onPreExtractQueries - 0.013s
+
+[2K[1A[2K[Gsuccess extract queries from components - 0.159s
+
+[2K[1A[2K[Gsuccess write out requires - 0.002s
+
+[2K[1A[2K[Gsuccess Re-building development bundle - 0.472s
+

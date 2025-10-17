@@ -1,0 +1,266 @@
+---
+title: 'Visualizing High-Dimensional Data with t-SNE and UMAP'
+date: '2025-06-20'
+author: 'Jonesh Shrestha'
+---
+
+<div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg">
+
+## TL;DR
+
+Compared t-SNE, UMAP, and PCA for dimensionality reduction and visualization of high-dimensional data (500 samples, 4 clusters). **UMAP best preserves global structure** with clearer cluster separation, t-SNE reveals local patterns with distinct clusters but can distort distances, PCA shows poorest separation with overlapping clusters. Demonstrates perplexity tuning for t-SNE (5-50), n_neighbors impact on UMAP (5-50), and explains when each technique excels: PCA for linear relationships, t-SNE for local pattern discovery, UMAP for balanced global/local structure preservation at faster speeds.
+
+</div>
+
+## Introduction
+
+One of the biggest challenges in machine learning is understanding high-dimensional data. When you have datasets with dozens or hundreds of features, you can't just plot them and see patterns. That's where dimensionality reduction for visualization comes in. In this tutorial, I'll show you how t-SNE and UMAP help visualize complex data structures, compare them to PCA, and explain when to use each technique.
+
+## The Visualization Challenge
+
+Imagine you're analyzing customer data with 50 features (age, income, purchase history, browsing behavior, etc.). How do you visualize this to spot patterns, clusters, or outliers? You can't create a 50-dimensional plot. You need to compress this information down to 2 or 3 dimensions while preserving the important structure.
+
+## Creating Synthetic 3D Data
+
+To understand these techniques, let's start with 3D data that we can actually visualize before and after reduction:
+
+```python
+centers = [[2, -6, -6],
+           [-1, 9, 4],
+           [-8, 7, 2],
+           [4, 7, 9]]
+
+cluster_std = [1, 1, 2, 3.5]
+
+X, labels_ = make_blobs(n_samples=500, centers=centers, n_features=3,
+                        cluster_std=cluster_std, random_state=42)
+```
+
+This creates 500 points in 3D space arranged in 4 clusters with different spreads. The varying cluster standard deviations (1, 1, 2, 3.5) create clusters of different densities, which tests how well the algorithms handle this.
+
+### Visualizing in 3D
+
+```python
+df = pd.DataFrame(X, columns=['X','Y','Z'])
+
+fig = px.scatter_3d(df, x='X', y='Y', z='Z', color=labels_.astype(str),
+                    opacity=0.7, title="3D Scatter Plot of Four Blobs")
+fig.show()
+```
+
+Using Plotly's interactive 3D scatter plot, we can rotate and explore the data. This gives us ground truth about the cluster structure before we compress to 2D.
+
+## Preprocessing: Standardization
+
+```python
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+```
+
+Before applying any dimensionality reduction, I standardized the data. This is important because t-SNE and UMAP (like many ML algorithms) are sensitive to feature scales. If one dimension ranges from 0 to 1000 while another ranges from 0 to 1, the larger scale dominates distance calculations.
+
+Standardization makes each feature have mean 0 and standard deviation 1, ensuring all dimensions contribute equally.
+
+## t-SNE: t-Distributed Stochastic Neighbor Embedding
+
+t-SNE is specifically designed for visualization. It doesn't just preserve distances like PCA. Instead, it tries to keep similar points close together and dissimilar points apart in the low-dimensional space.
+
+```python
+tsne = TSNE(n_components=2, random_state=42, perplexity=30, max_iter=1000)
+X_tsne = tsne.fit_transform(X_scaled)
+```
+
+### Understanding t-SNE Parameters
+
+**n_components=2**: We're reducing to 2 dimensions for visualization. You could use 3 for a 3D plot.
+
+**perplexity=30**: This is probably the most important parameter. It roughly means "each point should consider about 30 neighbors when computing its position."
+
+Think of perplexity like choosing how local vs. global your view is:
+
+- Low perplexity (5-15): Focuses on very local structure, might miss global patterns
+- High perplexity (30-50): Balances local and global structure
+- Very high perplexity (100+): Focuses more on global structure
+
+For most datasets, values between 20-50 work well. I used 30 as a good default.
+
+**max_iter=1000**: t-SNE iteratively adjusts point positions. More iterations give better results but take longer. 1000 is usually enough for convergence.
+
+### Visualizing the Results
+
+```python
+plt.scatter(X_tsne[:, 0], X_tsne[:, 1], c=labels_, cmap='viridis',
+            s=50, alpha=0.7, edgecolors='k')
+plt.title('2D t-SNE Projection of 3D Data')
+plt.xlabel('t-SNE Component 1')
+plt.ylabel('t-SNE Component 2')
+plt.xticks([])
+plt.yticks([])
+```
+
+I removed tick marks with `plt.xticks([])` and `plt.yticks([])` because t-SNE dimensions don't have interpretable units. Unlike PCA where axes represent variance directions, t-SNE axes are just arbitrary orientations that separate clusters.
+
+The colors come from our known labels (we created the data with labels), so we can verify that t-SNE successfully separated the clusters.
+
+## UMAP: Uniform Manifold Approximation and Projection
+
+UMAP is newer than t-SNE and often works better. It's faster, preserves more global structure, and gives more consistent results across runs.
+
+```python
+umap_model = UMAP.UMAP(n_components=2, random_state=42,
+                        min_dist=0.5, spread=1, n_jobs=1)
+X_umap = umap_model.fit_transform(X_scaled)
+```
+
+### Understanding UMAP Parameters
+
+**min_dist=0.5**: Controls how tightly points can pack together in the low-dimensional space. Lower values (0.1) create tighter, more separated clusters. Higher values (0.5) create more evenly distributed visualizations.
+
+I used 0.5 for a balanced view. If clusters were overlapping too much, I'd decrease this. If points were too sparse, I'd increase it.
+
+**spread=1**: Works with min_dist to control the effective scale of embedded points. Generally, you keep this at 1 and adjust min_dist.
+
+**n_jobs=1**: Number of parallel processing threads. Set to -1 to use all CPU cores for faster computation on large datasets.
+
+### Visualizing UMAP Results
+
+```python
+plt.scatter(X_umap[:, 0], X_umap[:, 1], c=labels_, cmap='viridis',
+            s=50, alpha=0.7, edgecolor='k')
+plt.title('2D UMAP Projection of 3D Data')
+```
+
+Like t-SNE, UMAP successfully separates the clusters. But there are subtle differences in how clusters are positioned relative to each other.
+
+## Comparing to PCA
+
+```python
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_scaled)
+```
+
+PCA is the classic dimensionality reduction technique. It finds the directions of maximum variance and projects data onto them.
+
+### Key Differences
+
+**PCA Characteristics**:
+
+- Very fast (linear algebra, no iteration)
+- Deterministic (same result every time)
+- Linear method (can't capture complex non-linear structure)
+- Preserves global distances reasonably well
+- Components have mathematical meaning (variance directions)
+
+**t-SNE Characteristics**:
+
+- Slower (iterative optimization)
+- Stochastic (different runs give slightly different results)
+- Non-linear (captures complex structure)
+- Excellent at preserving local neighborhoods
+- Components have no interpretable meaning
+
+**UMAP Characteristics**:
+
+- Fast (faster than t-SNE, slower than PCA)
+- More consistent than t-SNE (less stochastic)
+- Non-linear (captures complex structure)
+- Balances local and global structure better than t-SNE
+- Components have no interpretable meaning
+
+## When to Use Each Method
+
+### Use PCA When:
+
+- You need fast results
+- Reproducibility is critical (same input always gives same output)
+- You're reducing to 10+ dimensions (t-SNE and UMAP are mainly for 2-3D visualization)
+- Linear relationships dominate your data
+- You need to interpret the principal components
+- You're preprocessing for another algorithm (PCA as feature extraction)
+
+### Use t-SNE When:
+
+- Visualization is the goal (not preprocessing)
+- Local structure matters most (finding clusters, neighborhoods)
+- You have moderate-sized datasets (thousands to tens of thousands of points)
+- You can afford longer computation time
+- You're willing to try different perplexity values
+
+### Use UMAP When:
+
+- You want both local and global structure preserved
+- You have large datasets (UMAP scales better than t-SNE)
+- You want faster computation than t-SNE
+- You need more consistent results across runs
+- You're doing both visualization and preprocessing
+
+## Practical Tips
+
+### For t-SNE
+
+**Tune perplexity**: Try values between 5 and 50. For small datasets (< 1000 points), use lower values (5-15). For large datasets, use higher values (30-50).
+
+**Run multiple times**: Since t-SNE is stochastic, run it several times and look for consistent patterns. If different runs show completely different structures, your data might not have clear clusters.
+
+**Don't over-interpret distances**: t-SNE preserves neighborhoods, not distances. Two clusters close together in t-SNE plot aren't necessarily similar. Only trust local neighborhoods.
+
+### For UMAP
+
+**Adjust min_dist**: If clusters overlap too much, decrease min_dist (try 0.1). If visualization looks too sparse, increase it (try 0.8).
+
+**Use all CPU cores**: Set `n_jobs=-1` for large datasets to speed things up significantly.
+
+**Consider it for preprocessing**: Unlike t-SNE, UMAP is deterministic enough to use for dimensionality reduction before classification, not just visualization.
+
+### For All Methods
+
+**Always standardize first**: Feature scaling matters. Without it, high-variance features dominate the reduction.
+
+**Color by known labels if available**: This helps verify the method is capturing meaningful structure.
+
+**Remove outliers carefully**: Extreme outliers can distort the entire visualization. Consider removing or capping them before reduction.
+
+## Real-World Applications
+
+**Customer Segmentation**: Visualize customer clusters based on purchasing behavior, demographics, and preferences.
+
+**Gene Expression Analysis**: Biologists use t-SNE and UMAP to visualize cell types based on thousands of gene expression measurements.
+
+**Image Dataset Exploration**: Reduce high-dimensional image features (from neural networks) to 2D for browsing and understanding what the model learned.
+
+**Anomaly Detection**: Outliers that are far from all clusters in t-SNE/UMAP plots might be anomalies worth investigating.
+
+**High-Dimensional Debugging**: When your model performs poorly, visualizing the feature space can reveal problems like poorly separated classes or unexpected patterns.
+
+## Common Pitfalls
+
+**Interpreting absolute positions**: In t-SNE especially, the exact position of clusters relative to each other isn't meaningful. Don't conclude "cluster A is between clusters B and C" unless you have other evidence.
+
+**Ignoring computation time**: t-SNE on 100,000 points can take hours. UMAP is faster but still significant. Consider sampling for initial exploration.
+
+**Not trying different parameters**: The default parameters don't always work well. Try a range of perplexity (t-SNE) or min_dist (UMAP) values.
+
+**Using for dimensionality reduction in ML pipelines**: t-SNE is purely for visualization. UMAP can be used for preprocessing, but PCA is usually more reliable.
+
+## Conclusion
+
+t-SNE and UMAP are powerful tools for visualizing high-dimensional data. They reveal cluster structure, outliers, and patterns that are invisible in the original high-dimensional space.
+
+PCA is faster and more interpretable but limited to linear relationships. t-SNE excels at revealing local structure and clusters but can be slow and inconsistent. UMAP provides a nice middle ground, preserving both local and global structure while being faster and more reliable than t-SNE.
+
+The key is understanding what each method optimizes for and choosing based on your needs. For quick exploration, start with PCA. For detailed cluster analysis, use t-SNE or UMAP with carefully tuned parameters. And always remember to standardize your data first.
+
+These visualization techniques don't just make pretty pictures. They help you understand your data, debug models, communicate findings, and discover patterns you might never see otherwise. That understanding is often more valuable than any model you build.
+
+---
+
+## 📓 Jupyter Notebook
+
+Want to explore the complete code and run it yourself? Access the full Jupyter notebook with detailed implementations and visualizations:
+
+**[→ View Notebook on GitHub](https://github.com/joneshshrestha/machine-learning-python/blob/main/Dimensionalty%20Reduction%20Algorithms/t-SNE%20and%20UMAP/tSNE_UMAP.ipynb)**
+
+You can also run it interactively:
+
+- [Open in Google Colab](https://colab.research.google.com/github/joneshshrestha/machine-learning-python/blob/main/Dimensionalty%20Reduction%20Algorithms/t-SNE%20and%20UMAP/tSNE_UMAP.ipynb)
+- [Open in Binder](https://mybinder.org/v2/gh/joneshshrestha/machine-learning-python/main?filepath=Dimensionalty%20Reduction%20Algorithms/t-SNE%20and%20UMAP/tSNE_UMAP.ipynb)

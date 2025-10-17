@@ -1,8 +1,16 @@
 ---
 title: 'Predicting CO2 Emissions with Linear and Multiple Linear Regression'
-date: '2024-01-25'
+date: '2024-10-28'
 author: 'Jonesh Shrestha'
 ---
+
+<div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg">
+
+## TL;DR
+
+Compared simple and multiple linear regression for predicting vehicle CO2 emissions (1,067 samples). Multiple regression with engine size, cylinders, and fuel consumption achieved **R² = 0.87** (MAE: 20.8, MSE: 707.8), significantly outperforming simple linear regression with engine size alone (R² = 0.73, MAE: 26.8, MSE: 1175.0). Demonstrates feature correlation analysis, train/test splitting (80/20), model evaluation with multiple metrics, and visualization of predicted vs actual values with residual analysis.
+
+</div>
 
 ## Introduction
 
@@ -10,7 +18,7 @@ Understanding and predicting CO2 emissions from vehicles is crucial for environm
 
 ## Understanding Linear Regression
 
-Linear regression is one of the fundamental algorithms in machine learning. It works by finding the best-fitting straight line (or hyperplane in multiple dimensions) through your data points. The beauty of linear regression lies in its simplicity and interpretability—we can clearly see how each feature influences the prediction.
+Linear regression is one of the fundamental algorithms in machine learning. It works by finding the best-fitting straight line (or hyperplane in multiple dimensions) through your data points. The beauty of linear regression lies in its simplicity and interpretability-we can clearly see how each feature influences the prediction.
 
 ## Dataset Overview
 
@@ -60,7 +68,7 @@ I created scatter plots for multiple feature-target combinations:
 - Fuel consumption vs. CO2 emissions
 - Cylinders vs. CO2 emissions
 
-These visualizations revealed clear positive correlations—larger engines, more cylinders, and higher fuel consumption all correlate with increased CO2 emissions. This makes intuitive sense and gives us confidence that linear regression will work well.
+These visualizations revealed clear positive correlations-larger engines, more cylinders, and higher fuel consumption all correlate with increased CO2 emissions. This makes intuitive sense and gives us confidence that linear regression will work well.
 
 ## Train/Test Split
 
@@ -81,7 +89,7 @@ This random split ensures our model trains on most of the data while reserving s
 
 ## Simple Linear Regression: Engine Size
 
-Let's start with the simplest case—predicting CO2 emissions based solely on engine size:
+Let's start with the simplest case-predicting CO2 emissions based solely on engine size:
 
 ```python
 from sklearn import linear_model
@@ -97,7 +105,7 @@ print('Intercept: ', regr.intercept_)
 
 ### Why asanyarray()?
 
-I used `np.asanyarray()` instead of `np.array()` because it's more efficient. The `asanyarray()` function doesn't create a new array if the existing data is already in the desired format—it just returns a reference to the original data. This saves memory and computation time, which becomes important with larger datasets.
+I used `np.asanyarray()` instead of `np.array()` because it's more efficient. The `asanyarray()` function doesn't create a new array if the existing data is already in the desired format-it just returns a reference to the original data. This saves memory and computation time, which becomes important with larger datasets.
 
 ### Understanding the Results
 
@@ -156,7 +164,7 @@ The `.2f` converts the number into a string with two decimal points. While we co
 
 ## Simple Linear Regression: Fuel Consumption
 
-Let's try a different feature—combined fuel consumption:
+Let's try a different feature-combined fuel consumption:
 
 ```python
 train_x = np.asanyarray(train[['FUELCONSUMPTION_COMB']])
@@ -173,7 +181,7 @@ Results:
 - **MSE**: 676.48
 - **R²**: 0.75
 
-This model performs similarly to the engine size model, with slightly better MAE and MSE. This makes sense because fuel consumption directly relates to emissions—more fuel burned means more CO2 produced.
+This model performs similarly to the engine size model, with slightly better MAE and MSE. This makes sense because fuel consumption directly relates to emissions-more fuel burned means more CO2 produced.
 
 ## Multiple Linear Regression
 
@@ -225,7 +233,7 @@ print(f'Variance Score: {regr.score(test_x, test_y): .2f}')
 print(f'Variance Score: {r2_score(test_y, test_y_): .2f}')
 ```
 
-Both produce the same result. The `regr.score()` method is built into the regression model, while `r2_score()` is a standalone function from sklearn.metrics. Either approach works—it's a matter of preference.
+Both produce the same result. The `regr.score()` method is built into the regression model, while `r2_score()` is a standalone function from sklearn.metrics. Either approach works-it's a matter of preference.
 
 ## Feature Engineering Experiment
 
@@ -271,4 +279,17 @@ These regression models have real-world applications:
 
 Linear regression provides a powerful yet interpretable method for understanding and predicting CO2 emissions. By starting with simple linear regression to understand individual feature relationships, then advancing to multiple linear regression for improved predictions, we built a model that explains 86% of variance in CO2 emissions.
 
-The strength of this approach lies in its transparency—we can explain exactly how much each vehicle characteristic contributes to emissions, making it valuable for both technical and non-technical stakeholders. Whether you're a consumer choosing a car, a policy maker setting standards, or an engineer designing vehicles, these insights help make informed decisions about environmental impact.
+The strength of this approach lies in its transparency-we can explain exactly how much each vehicle characteristic contributes to emissions, making it valuable for both technical and non-technical stakeholders. Whether you're a consumer choosing a car, a policy maker setting standards, or an engineer designing vehicles, these insights help make informed decisions about environmental impact.
+
+---
+
+## 📓 Jupyter Notebook
+
+Want to explore the complete code and run it yourself? Access the full Jupyter notebook with detailed implementations and visualizations:
+
+**[→ View Notebook on GitHub](https://github.com/joneshshrestha/machine-learning-python/blob/main/Simple%20and%20Mutiple%20Linear%20Regression/co2-emission/co2-prediction-model.ipynb)**
+
+You can also run it interactively:
+
+- [Open in Google Colab](https://colab.research.google.com/github/joneshshrestha/machine-learning-python/blob/main/Simple%20and%20Mutiple%20Linear%20Regression/co2-emission/co2-prediction-model.ipynb)
+- [Open in Binder](https://mybinder.org/v2/gh/joneshshrestha/machine-learning-python/main?filepath=Simple%20and%20Mutiple%20Linear%20Regression/co2-emission/co2-prediction-model.ipynb)

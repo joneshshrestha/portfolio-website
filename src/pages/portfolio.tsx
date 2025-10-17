@@ -3,11 +3,42 @@ import Layout from '../components/Layout';
 
 const featuredProjects = [
   {
+    title: 'FrozenLake Environment Optimization',
+    description: 'Reinforcement learning with MDP and value iteration achieving 100% success rate.',
+    image: '/img/mdp.gif',
+    github:
+      'https://github.com/joneshshrestha/artificial-intelligence/tree/main/Markov%20Decision%20Process',
+    tech: ['Python', 'Gymnasium', 'NumPy', 'Matplotlib'],
+    category: 'AI/ML',
+  },
+  {
+    title: 'Binary Classification ML Pipeline',
+    description:
+      'Complete ML pipeline with cross-validation, grid search, and 77.5% test accuracy.',
+    image: '/img/binary-classification.jpg',
+    github:
+      'https://github.com/joneshshrestha/artificial-intelligence/tree/main/ML%20Binary%20Classification',
+    tech: ['Python', 'Scikit-learn', 'NumPy', 'Pandas'],
+    category: 'AI/ML',
+  },
+  {
+    title: 'Delivery Route Optimization',
+    description:
+      'AI search algorithms (BFS, UCS, A*) for logistics with 4x speedup using heuristics.',
+    image: '/img/delivery-route.png',
+    github:
+      'https://github.com/joneshshrestha/artificial-intelligence/tree/main/Delivery%20Route%20Finder',
+    tech: ['Python', 'JSON', 'Graph Algorithms', 'Heuristic Search'],
+    category: 'AI/ML',
+  },
+  {
     title: 'Advanced Evolution Simulator',
     description: 'A simulation of bipedals that try to learn to walk as humans.',
     image: '/img/advanced-evolution-simulator.jpg',
     github: 'https://github.com/adityathebe/evolutionSimulator',
     demo: 'https://adityathebe.github.io/evolutionSimulator/',
+    tech: ['JavaScript', 'Matter.js', 'HTML5 Canvas', 'Genetic Algorithm'],
+    category: 'AI/ML',
   },
   {
     title: 'Evolution Simulator',
@@ -15,6 +46,8 @@ const featuredProjects = [
     image: '/img/evolution-simulator.jpg',
     github: 'https://github.com/joneshshrestha/Evolution-Simulator',
     demo: 'https://joneshshrestha.github.io/Evolution-Simulator/',
+    tech: ['JavaScript', 'TensorFlow.js', 'HTML5 Canvas', 'Genetic Algorithm'],
+    category: 'AI/ML',
   },
 ];
 
@@ -24,72 +57,77 @@ const otherProjects = [
     description: 'Latest ad-free news from Kantipur & The Kathmandu Post.',
     github: 'https://github.com/joneshshrestha/kantipur-web-scraper',
     demo: 'https://kantipur-app.fly.dev/',
+    tech: ['Node.js', 'Express', 'Cheerio', 'Fly.io'],
   },
   {
     title: 'KURA (Kathmandu University Requests and Answers)',
     description: 'A platform for Kathmandu University students to ask and answer questions.',
     github: 'https://github.com/joneshshrestha/kura',
     demo: '',
-  },
-  {
-    title: 'KU (Kathmandu University) BOT',
-    description: 'A bot for Kathmandu University students.',
-    github: 'https://github.com/adityathebe/KU-BOT',
-    demo: '',
+    tech: ['React', 'Node.js', 'Express', 'MongoDB'],
   },
   {
     title: 'Quick Sort Visualization',
     description: 'Interactive visualization of the Quick Sort algorithm.',
     github: '',
     demo: 'https://joneshshrestha.github.io/SortingVisualization/',
-  },
-  {
-    title: 'Perlin Noise',
-    description: 'A tool for generating Perlin noise patterns.',
-    github: '',
-    demo: 'https://joneshshrestha.github.io/Perlin-Noise/',
+    tech: ['JavaScript', 'HTML5 Canvas', 'Algorithms', 'CSS'],
   },
   {
     title: 'Backroads App',
     description: 'Travel service website with ReactJS.',
     github: 'https://github.com/joneshshrestha/React-Projects/tree/main/backroads-app',
     demo: 'https://stirring-flan-803d1d.netlify.app/',
+    tech: ['React', 'JavaScript', 'CSS', 'Netlify'],
+  },
+  {
+    title: 'KU (Kathmandu University) BOT',
+    description: 'A bot for Kathmandu University students.',
+    github: 'https://github.com/adityathebe/KU-BOT',
+    demo: '',
+    tech: ['Python', 'Selenium', 'Web Automation'],
+  },
+  {
+    title: 'Perlin Noise',
+    description: 'A tool for generating Perlin noise patterns.',
+    github: '',
+    demo: 'https://joneshshrestha.github.io/Perlin-Noise/',
+    tech: ['JavaScript', 'HTML5 Canvas', 'Procedural Generation'],
   },
   {
     title: 'OMGSoundboard',
     description: 'Android Soundboard website with Material Design and finest tunes.',
     github: 'https://github.com/joneshshrestha/OMGSoundboard.github.io',
     demo: 'https://omgsoundboard.audio/',
+    tech: ['HTML', 'CSS', 'JavaScript', 'Material Design'],
   },
   {
     title: 'High Fidelity Wireframe',
     description: 'Instructor HQ website UX wireframes designed with Adobe tools.',
     github: '',
     demo: 'https://xd.adobe.com/view/0ce85bb2-f691-4086-4f4b-4121f3c28e95-7ad9/?fullscreen&hints=off',
+    tech: ['Adobe XD', 'UI/UX Design'],
   },
   {
     title: 'Drum Kit',
     description: 'An interactive drum kit web application.',
     github: '',
     demo: 'https://joneshshrestha.github.io/web-development/Drum%20Kit/',
-  },
-  {
-    title: 'Facebook Phishing Site',
-    description: 'A mock Facebook login page for educational purposes.',
-    github: 'https://github.com/joneshshrestha/mock-fb-login-page',
-    demo: '',
+    tech: ['JavaScript', 'HTML', 'CSS'],
   },
   {
     title: 'Simon Game',
     description: 'A classic Simon memory game.',
     github: '',
     demo: 'https://joneshshrestha.github.io/web-development/Simon%20Game/',
+    tech: ['JavaScript', 'jQuery', 'Game Development'],
   },
   {
     title: 'iOS App Development',
     description: 'Various iOS applications developed with Swift.',
     github: 'https://github.com/joneshshrestha/iOS-development/',
     demo: '',
+    tech: ['Swift', 'iOS', 'Xcode'],
   },
 ];
 
@@ -99,6 +137,10 @@ const PortfolioPage = () => {
       <div className="space-y-16">
         <section>
           <h1 className="text-2xl font-medium tracking-tight mb-3">Featured Projects</h1>
+          <p className="text-gray-600 dark:text-gray-300 mb-8">
+            AI/ML projects showcasing reinforcement learning, machine learning pipelines, and
+            intelligent algorithms.
+          </p>
         </section>
 
         <section>
@@ -106,18 +148,36 @@ const PortfolioPage = () => {
             {featuredProjects.map((project, index) => (
               <div
                 key={index}
-                className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+                className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300"
               >
-                <a href={project.demo} target="_blank" rel="noopener noreferrer" className="block">
+                <a
+                  href={project.demo || project.github}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block h-64 bg-gray-50 dark:bg-gray-800"
+                >
                   <img
                     src={project.image}
                     alt={project.title}
-                    className="w-full h-auto object-contain rounded-t-lg"
+                    className="w-full h-full object-cover rounded-t-lg"
                   />
                 </a>
                 <div className="p-6">
                   <h2 className="text-xl font-semibold mb-2">{project.title}</h2>
                   <p className="text-gray-600 dark:text-gray-300 mb-4">{project.description}</p>
+
+                  {/* Tech Stack Tags */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {project.tech.map((tech, techIndex) => (
+                      <span
+                        key={techIndex}
+                        className="px-3 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full"
+                      >
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+
                   <div className="flex gap-4">
                     {project.github && (
                       <a
@@ -126,7 +186,7 @@ const PortfolioPage = () => {
                         rel="noopener noreferrer"
                         className="text-primary-light dark:text-primary-dark hover:underline"
                       >
-                        GitHub
+                        GitHub →
                       </a>
                     )}
                     {project.demo && (
@@ -136,7 +196,7 @@ const PortfolioPage = () => {
                         rel="noopener noreferrer"
                         className="text-primary-light dark:text-primary-dark hover:underline"
                       >
-                        Live Demo
+                        Live Demo →
                       </a>
                     )}
                   </div>
@@ -148,20 +208,41 @@ const PortfolioPage = () => {
 
         <section>
           <h2 className="text-2xl font-medium tracking-tight mb-3">Other Projects</h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-8">
+            Web applications, tools, and experiments across various technologies.
+          </p>
           <div className="space-y-4">
             {otherProjects.map((project, index) => (
-              <div key={index} className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <div
+                key={index}
+                className="border-t border-gray-200 dark:border-gray-700 pt-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200 p-4 rounded-lg"
+              >
                 <h3 className="text-lg font-semibold mb-2">{project.title}</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-2">{project.description}</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-3">{project.description}</p>
+
+                {/* Tech Stack Tags for Other Projects */}
+                {project.tech && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {project.tech.map((tech, techIndex) => (
+                      <span
+                        key={techIndex}
+                        className="px-2 py-1 text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded"
+                      >
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 <div className="flex gap-4">
                   {project.github && (
                     <a
                       href={project.github}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary-light dark:text-primary-dark hover:underline"
+                      className="text-primary-light dark:text-primary-dark hover:underline text-sm"
                     >
-                      GitHub
+                      GitHub →
                     </a>
                   )}
                   {project.demo && (
@@ -169,9 +250,9 @@ const PortfolioPage = () => {
                       href={project.demo}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary-light dark:text-primary-dark hover:underline"
+                      className="text-primary-light dark:text-primary-dark hover:underline text-sm"
                     >
-                      Live Demo
+                      Live Demo →
                     </a>
                   )}
                 </div>

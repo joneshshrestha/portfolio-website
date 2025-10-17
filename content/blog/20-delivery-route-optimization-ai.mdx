@@ -1,0 +1,289 @@
+---
+title: 'Building an AI-Powered Delivery Route Optimization System'
+date: '2025-07-08'
+author: 'Jonesh Shrestha'
+---
+
+<div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg">
+
+## TL;DR
+
+Implemented and compared three AI search algorithms (BFS, UCS, A\*) for delivery route optimization on real-world map data from Tegucigalpa (24 locations, 64 streets). A\* dramatically outperforms uninformed search with **4x speedup** on complex 12-delivery scenarios (0.95s vs 3.6-4.0s), exploring only 85K nodes compared to 360K+ for BFS/UCS. Used admissible straight-line distance heuristic to achieve optimal solutions while maintaining efficiency. BFS finds suboptimal routes; UCS and A\* guarantee optimality, but A\* requires far fewer node expansions. Demonstrates practical application of informed search in logistics optimization.
+
+</div>
+
+Route optimization is a fundamental problem in logistics, and artificial intelligence provides powerful tools to solve it efficiently. In this tutorial, I'll show you how to build a complete delivery route optimization system using three different AI search algorithms: Breadth-First Search (BFS), Uniform Cost Search (UCS), and A\* Search.
+
+## The Problem
+
+Imagine you're running a delivery service in a city. You need to:
+
+1. Start from a depot location
+2. Visit multiple delivery locations
+3. Return to the depot
+4. Minimize total travel distance
+
+This is a variant of the Traveling Salesman Problem combined with graph search. The complexity grows exponentially with the number of delivery locations, making efficient algorithms essential.
+
+## Project Overview
+
+The system implements three search algorithms and compares their performance on real-world map data from Tegucigalpa, Honduras. The map contains:
+
+- 24 named locations (nodes)
+- 64 bidirectional street segments (edges)
+- Real distance measurements in miles
+
+By testing scenarios from simple (1 delivery) to complex (12 deliveries), we can measure how each algorithm scales.
+
+## Understanding the State Space
+
+### State Representation
+
+Each state in the search space tracks:
+
+- Current location
+- Set of unvisited delivery targets
+- Whether we've returned to start
+
+```python
+class State:
+    def __init__(self, location, targets_remaining, at_start):
+        self.location = location
+        self.targets_remaining = frozenset(targets_remaining)
+        self.at_start = at_start
+
+    def get_representation(self):
+        # Unique string identifying this state
+        return f"{self.location}|{sorted(self.targets_remaining)}|{self.at_start}"
+```
+
+The state representation is crucial. Two states are identical if they have the same location, remaining targets, and start status.
+
+### Goal State
+
+A state is a goal if:
+
+1. All targets have been visited (targets_remaining is empty)
+2. We're back at the starting location
+
+This formulation ensures we complete the round trip.
+
+## Algorithm 1: Breadth-First Search
+
+BFS explores the search space level by level, guaranteeing the shortest path in terms of number of steps.
+
+```python
+@staticmethod
+def breadth_first_search(problem: Problem) -> SearchResults:
+    initial_state = problem.get_initial_state()
+    root_node = SearchTreeNode(None, None, initial_state, 0)
+
+    # FIFO queue for frontier
+    frontier = [root_node]
+    reached = {initial_state.get_representation()}
+    explored = 0
+
+    while frontier:
+        current_node = frontier.pop(0)
+        explored += 1
+
+        child_states = problem.generate_children(current_node.get_state())
+
+        for child_state in child_states:
+            if problem.is_goal_state(child_state):
+                solution = child_node.path_to_root()
+                return SearchResults(solution, path_cost, len(reached), explored)
+
+            if child_state.get_representation() not in reached:
+                reached.add(child_state.get_representation())
+                frontier.append(child_node)
+```
+
+BFS is complete but only optimal when all edge costs are identical.
+
+## Algorithm 2: Uniform Cost Search
+
+UCS expands nodes in order of path cost, guaranteeing the optimal solution.
+
+```python
+@staticmethod
+def uniform_cost_search(problem: Problem) -> SearchResults:
+    initial_state = problem.get_initial_state()
+    root_node = SearchTreeNode(None, None, initial_state, 0)
+
+    # Priority queue ordered by path cost
+    frontier = [(0.0, root_node)]
+    heapq.heapify(frontier)
+    reached = {initial_state.get_representation(): root_node}
+
+    while frontier:
+        current_node = heapq.heappop(frontier)[1]
+
+        if problem.is_goal_state(current_node.get_state()):
+            return SearchResults(solution, path_cost, len(reached), explored)
+
+        for child_state in problem.generate_children(current_node.get_state()):
+            if (state_repr not in reached or
+                path_cost < reached[state_repr].get_path_cost()):
+                reached[state_repr] = child_node
+                heapq.heappush(frontier, (path_cost, child_node))
+```
+
+UCS guarantees optimality by always expanding the lowest-cost path.
+
+## Algorithm 3: A\* Search
+
+A\* combines UCS's optimality with heuristic guidance for improved efficiency.
+
+### The Heuristic Function
+
+The heuristic estimates the remaining cost to reach the goal:
+
+```python
+def estimate_cost_to_solution(self, state):
+    if len(state.targets_remaining) == 0:
+        if state.at_start:
+            return 0
+        else:
+            return self.city_map.straight_line_distance(
+                state.location, self.start_location
+            )
+
+    current_location = state.location
+    targets = list(state.targets_remaining)
+
+    # Find nearest unvisited target
+    min_to_target = min(
+        self.city_map.straight_line_distance(current_location, target)
+        for target in targets
+    )
+
+    # Find farthest target from start
+    max_from_target_to_start = max(
+        self.city_map.straight_line_distance(target, self.start_location)
+        for target in targets
+    )
+
+    return min_to_target + max_from_target_to_start
+```
+
+This heuristic is admissible because straight-line distance never exceeds actual path distance.
+
+## Experimental Results
+
+### Easy Test Case: 1 Delivery
+
+| Algorithm | Solution Cost | Nodes Reached | Nodes Explored | Time (s) |
+| --------- | ------------- | ------------- | -------------- | -------- |
+| BFS       | 5.45 miles    | 27            | 22             | 0.00018  |
+| UCS       | 5.45 miles    | 56            | 42             | 0.00030  |
+| A\*       | 5.45 miles    | 14            | 4              | 0.00006  |
+
+All three find the optimal route, but A\* is 3x faster and explores only 4 nodes compared to BFS's 22.
+
+### Medium Test Case: 4 Deliveries
+
+| Algorithm | Solution Cost | Nodes Reached | Nodes Explored | Time (s) |
+| --------- | ------------- | ------------- | -------------- | -------- |
+| BFS       | 19.28 miles   | 1,409         | 1,321          | 0.00849  |
+| UCS       | 18.78 miles   | 1,467         | 1,516          | 0.00941  |
+| A\*       | 18.78 miles   | 580           | 445            | 0.00331  |
+
+BFS finds a suboptimal solution. UCS and A* both find the optimal route, but A* is 3x faster.
+
+### Hard Test Case: 12 Deliveries
+
+| Algorithm | Solution Cost | Nodes Reached | Nodes Explored | Time (s) |
+| --------- | ------------- | ------------- | -------------- | -------- |
+| BFS       | 39.05 miles   | 364,289       | 361,047        | 3.99     |
+| UCS       | 38.86 miles   | 361,878       | 386,478        | 3.61     |
+| A\*       | 38.86 miles   | 98,013        | 85,230         | 0.95     |
+
+With 12 deliveries, A\* is **4x faster** than BFS/UCS and explores **4x fewer nodes**.
+
+## Performance Analysis
+
+### Scalability
+
+| Deliveries | BFS Time  | UCS Time  | A\* Time | A\* Speedup |
+| ---------- | --------- | --------- | -------- | ----------- |
+| 1          | 0.00018 s | 0.00030 s | 0.00006  | 3x          |
+| 4          | 0.00849 s | 0.00941 s | 0.00331  | 2.8x        |
+| 12         | 3.99 s    | 3.61 s    | 0.95 s   | 4x          |
+
+As the problem grows, A\* becomes increasingly superior.
+
+### Solution Quality
+
+| Deliveries | BFS Cost    | UCS Cost    | A\* Cost    | BFS Gap |
+| ---------- | ----------- | ----------- | ----------- | ------- |
+| 1          | 5.45 miles  | 5.45 miles  | 5.45 miles  | 0%      |
+| 4          | 19.28 miles | 18.78 miles | 18.78 miles | 2.7%    |
+| 12         | 39.05 miles | 38.86 miles | 38.86 miles | 0.5%    |
+
+UCS and A\* always find optimal solutions. BFS sometimes finds suboptimal routes.
+
+## Key Insights
+
+### Why A\* Dominates
+
+A\* outperforms BFS and UCS because:
+
+1. **Informed Search**: The heuristic focuses exploration on promising paths
+2. **Early Pruning**: High-cost paths are abandoned quickly
+3. **Optimal Efficiency**: Expands the minimum nodes necessary
+4. **Smaller Frontier**: Fewer nodes in memory at any time
+
+### When to Use Each Algorithm
+
+**Use BFS when**:
+
+- All edges have equal cost
+- You need the fewest steps (not shortest distance)
+
+**Use UCS when**:
+
+- You need guaranteed optimal solutions
+- You don't have a good heuristic
+
+**Use A\* when**:
+
+- You need optimal solutions efficiently
+- You can design an admissible heuristic
+- Performance matters (which it usually does)
+
+## Practical Applications
+
+This system demonstrates techniques used in:
+
+- **Package Delivery**: UPS, FedEx, Amazon use similar algorithms
+- **Ride Sharing**: Uber/Lyft route optimization
+- **Field Service**: Technician scheduling and routing
+- **Emergency Services**: Ambulance and fire truck dispatch
+- **Drone Delivery**: Path planning with obstacles
+
+## Conclusion
+
+This delivery route optimization system demonstrates how AI search algorithms solve real-world logistics problems. By comparing three algorithms, we see how heuristic information dramatically improves efficiency.
+
+Key takeaways:
+
+1. **A\* achieves 4x speedup** over uninformed search with a simple heuristic
+2. **Admissible heuristics guarantee optimality** while improving performance
+3. **Algorithm choice depends on problem characteristics**
+4. **Modular design** makes the system extensible and maintainable
+5. **Real-world data** reveals practical performance differences
+
+For delivery routing with 7+ locations, A\* is clearly superior. With just a straight-line distance heuristic, it finds optimal solutions in under a second even for 12-location routes that take BFS and UCS over 3 seconds.
+
+---
+
+### 📓 Interactive Code
+
+Explore the complete implementation with all three search algorithms:
+
+- [View on GitHub](https://github.com/joneshshrestha/artificial-intelligence/tree/main/Delivery%20Route%20Finder)
+- [View Main Script](https://github.com/joneshshrestha/artificial-intelligence/blob/main/Delivery%20Route%20Finder/main.py)
+- [View Search Algorithms](https://github.com/joneshshrestha/artificial-intelligence/blob/main/Delivery%20Route%20Finder/search/search_algorithms.py)
+
+_Check the repository for the complete code, test cases, and map data._

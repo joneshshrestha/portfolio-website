@@ -1,8 +1,16 @@
 ---
 title: 'Customer Segmentation Using K-Means Clustering'
-date: '2024-02-01'
+date: '2025-01-25'
 author: 'Jonesh Shrestha'
 ---
+
+<div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg">
+
+## TL;DR
+
+Implemented K-Means clustering for customer segmentation, identifying **3 optimal clusters** using elbow method analysis (850 customers). Segments include education-focused (avg age 42, education 2.4), affluent high-income (avg income $88K), and value-conscious groups. Demonstrates unsupervised learning workflow with synthetic data visualization, feature normalization, centroid initialization, and iterative convergence. Evaluates cluster quality using inertia metrics and visualizes customer distributions across age, income, and education dimensions for targeted marketing strategies.
+
+</div>
 
 ## Introduction
 
@@ -23,33 +31,28 @@ The algorithm aims to minimize the distance between points and their assigned cl
 
 Before working with real customer data, I'll demonstrate K-Means using synthetic data to help you understand exactly how the algorithm works:
 
-
 ```python
 np.random.seed(0)
 X, y = make_blobs(n_samples=5000, centers=[[4,4],[-2,-1],[2,-3],[1,1]], cluster_std=0.9)
 ```
 
-
-Setting `np.random.seed(0)` ensures reproducibility—we get the same "random" data every time we run the code. The `make_blobs()` function creates 5,000 data points clustered around four centers with a standard deviation of 0.9, simulating how real data might naturally group.
+Setting `np.random.seed(0)` ensures reproducibility-we get the same "random" data every time we run the code. The `make_blobs()` function creates 5,000 data points clustered around four centers with a standard deviation of 0.9, simulating how real data might naturally group.
 
 ## K-Means++ Initialization
-
 
 ```python
 k_means = KMeans(init='k-means++', n_clusters=4, n_init=12)
 ```
 
-
 Let me explain these important parameters:
 
 **init='k-means++'**: This is an improved initialization method that carefully selects initial cluster centers rather than placing them completely randomly. K-means++ chooses initial centroids that are far apart from each other, which leads to better and faster convergence. Think of it like strategically placing the first pieces in a game rather than placing them blindly.
 
-**n_clusters=4**: We're telling the algorithm to find 4 distinct groups in our data. Choosing the right number of clusters is crucial—too few and we lose important distinctions, too many and we over-segment.
+**n_clusters=4**: We're telling the algorithm to find 4 distinct groups in our data. Choosing the right number of clusters is crucial-too few and we lose important distinctions, too many and we over-segment.
 
 **n_init=12**: The algorithm runs 12 independent times with different random initializations, then uses the best result. This is important because K-Means can get stuck in local optima (decent but not optimal solutions). Running multiple times and keeping the best result gives us more confidence in our clusters.
 
 ## Visualizing Clusters
-
 
 ```python
 fig = plt.figure(figsize=(6,4))
@@ -64,12 +67,11 @@ for k, col in zip(range(len([[4, 4], [-2, -1], [2, -3], [1, 1]])), colors):
     ax.plot(cluster_center[0], cluster_center[1], 'o', markerfacecolor=col, markeredgecolor='k', ms=6)
 ```
 
-
 ### Understanding the Visualization Code
 
 **Color Mapping**: `plt.cm.tab10(np.linspace(0, 1, ...))` creates evenly spaced colors from the tab10 colormap. This ensures each cluster gets a distinct color.
 
-**Boolean Masking**: `my_members = (k_means_labels == k)` creates a boolean array where True indicates points belonging to cluster k. This is a powerful numpy technique—we can use this mask to select only the points in the current cluster.
+**Boolean Masking**: `my_members = (k_means_labels == k)` creates a boolean array where True indicates points belonging to cluster k. This is a powerful numpy technique-we can use this mask to select only the points in the current cluster.
 
 **Array Indexing**: `X[my_members, 0]` uses the boolean mask to get all True values (points in cluster k) and then selects the first item in each array (the x-coordinate). Similarly, `X[my_members, 1]` gets the y-coordinates.
 
@@ -81,75 +83,63 @@ One challenge in clustering is choosing the right number of clusters. I experime
 
 ### 3 Clusters
 
-
 ```python
 k_means_3 = KMeans(init='k-means++', n_clusters=3, n_init=12)
 k_means_3.fit(X)
 ```
 
-
 With only 3 clusters, the algorithm is forced to merge some natural groups, potentially losing important distinctions in our data.
 
 ### 5 Clusters
-
 
 ```python
 k_means_5 = KMeans(init='k-means++', n_clusters=5, n_init=12)
 k_means_5.fit(X)
 ```
 
-
 With 5 clusters, the algorithm might split natural groups into smaller sub-groups. This could be useful for more granular segmentation, but might also create artificial divisions.
 
-The key is balancing detail and simplicity—enough clusters to capture meaningful differences, but not so many that the segments become too small to be useful.
+The key is balancing detail and simplicity-enough clusters to capture meaningful differences, but not so many that the segments become too small to be useful.
 
 ## Real-World Application: Customer Segmentation
 
 Now let's apply K-Means to actual customer data:
 
-
 ```python
 df = pd.read_csv('Cust_Segmentation.csv')
 ```
 
-
 ### Data Preprocessing
 
 #### Removing Non-Numeric Features
-
 
 ```python
 df = df.drop('Address', axis=1)
 df = df.dropna()
 ```
 
-
-I dropped the Address column because it's categorical and doesn't have a meaningful numeric representation for clustering. Geographic addresses could be valuable (you might cluster by location), but that would require converting addresses to coordinates first—a more complex task beyond our current scope.
+I dropped the Address column because it's categorical and doesn't have a meaningful numeric representation for clustering. Geographic addresses could be valuable (you might cluster by location), but that would require converting addresses to coordinates first-a more complex task beyond our current scope.
 
 #### Feature Normalization
-
 
 ```python
 X = df.iloc[:, 1:]
 X = StandardScaler().fit_transform(X)
 ```
 
-
 This is crucial! I removed the Customer ID column (using `iloc[:, 1:]` to select all columns except the first) because IDs are arbitrary identifiers that shouldn't influence clustering.
 
 Then I normalized the features using StandardScaler. Here's why this matters: K-Means uses distance measurements to group points. If one feature ranges from 0-100 and another from 0-100,000, the larger-scale feature will dominate distance calculations. Normalization ensures all features contribute equally by transforming them to have mean=0 and standard deviation=1.
 
-Think of it like measuring distance in a city—you wouldn't want one street to be measured in meters and another in kilometers, or the kilometer measurements would dominate your distance calculations.
+Think of it like measuring distance in a city-you wouldn't want one street to be measured in meters and another in kilometers, or the kilometer measurements would dominate your distance calculations.
 
 ## Building the Customer Segmentation Model
-
 
 ```python
 k_means = KMeans(init='k-means++', n_clusters=3, n_init=12)
 k_means.fit(X)
 labels = k_means.labels_
 ```
-
 
 I chose 3 clusters for customer segmentation based on a common business framework:
 
@@ -163,7 +153,6 @@ Of course, the actual segments depend on your specific data and business context
 
 Once we have cluster assignments, we can analyze each segment:
 
-
 ```python
 df['Cluster'] = labels
 for i in range(3):
@@ -171,7 +160,6 @@ for i in range(3):
     print(f"Cluster {i}:")
     print(segment.describe())
 ```
-
 
 This analysis might reveal patterns like:
 
@@ -236,3 +224,16 @@ The key to successful clustering is:
 4. Interpreting results in business context to create actionable segments
 
 Remember, clustering is just the first step. The real value comes from understanding what makes each segment unique and developing strategies that resonate with each group. Whether you're personalizing marketing campaigns, optimizing product offerings, or improving customer service, segmentation helps you treat different customers differently in meaningful ways.
+
+---
+
+## 📓 Jupyter Notebook
+
+Want to explore the complete code and run it yourself? Access the full Jupyter notebook with detailed implementations and visualizations:
+
+**[→ View Notebook on GitHub](https://github.com/joneshshrestha/machine-learning-python/blob/main/Clustering/customer-segmentation/customer-segmentation.ipynb)**
+
+You can also run it interactively:
+
+- [Open in Google Colab](https://colab.research.google.com/github/joneshshrestha/machine-learning-python/blob/main/Clustering/customer-segmentation/customer-segmentation.ipynb)
+- [Open in Binder](https://mybinder.org/v2/gh/joneshshrestha/machine-learning-python/main?filepath=Clustering/customer-segmentation/customer-segmentation.ipynb)

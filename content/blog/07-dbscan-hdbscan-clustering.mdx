@@ -1,12 +1,20 @@
 ---
 title: 'Comparing DBSCAN and HDBSCAN for Geospatial Clustering'
-date: '2024-02-15'
+date: '2025-06-17'
 author: 'Jonesh Shrestha'
 ---
 
+<div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg">
+
+## TL;DR
+
+Compared DBSCAN vs HDBSCAN for clustering Canadian museum locations (250+ samples). DBSCAN identified **6 clusters** (eps=2, min_samples=5) with 3.6% noise, while HDBSCAN discovered **5 hierarchical clusters** (min_cluster_size=5) with 2% noise. HDBSCAN adapts to varying densities without manual epsilon tuning, making it superior for real-world geospatial data. Demonstrates density-based clustering advantages over K-Means: arbitrary cluster shapes, automatic outlier detection, no need to pre-specify cluster count, and robust handling of geographic point patterns.
+
+</div>
+
 ## Introduction
 
-When analyzing geospatial data like museum locations across Canada, traditional clustering algorithms like K-Means have limitations—they require you to specify the number of clusters upfront and assume clusters are spherical. In this tutorial, I'll show you how to use DBSCAN and HDBSCAN, two density-based clustering algorithms that can discover clusters of arbitrary shapes and automatically identify outliers. This is particularly valuable for geographic data where clusters might represent regional concentrations of cultural institutions.
+When analyzing geospatial data like museum locations across Canada, traditional clustering algorithms like K-Means have limitations-they require you to specify the number of clusters upfront and assume clusters are spherical. In this tutorial, I'll show you how to use DBSCAN and HDBSCAN, two density-based clustering algorithms that can discover clusters of arbitrary shapes and automatically identify outliers. This is particularly valuable for geographic data where clusters might represent regional concentrations of cultural institutions.
 
 ## Understanding Density-Based Clustering
 
@@ -23,7 +31,7 @@ DBSCAN (Density-Based Spatial Clustering of Applications with Noise) groups toge
 
 ### Key Concepts
 
-- **eps (ε)**: The neighborhood search radius—how far to look for neighbors
+- **eps (ε)**: The neighborhood search radius-how far to look for neighbors
 - **min_samples**: Minimum points needed to form a dense region (cluster)
 - **Core point**: A point with at least min_samples neighbors within eps distance
 - **Border point**: In the neighborhood of a core point but doesn't have enough neighbors itself
@@ -42,21 +50,17 @@ HDBSCAN improves on DBSCAN by:
 
 We're working with museum location data from the Open Database of Cultural Arts Facilities:
 
-
 ```python
 df = pd.read_csv('ODCAF_v1.0.csv', encoding='ISO-8859-1')
 ```
-
 
 The `encoding='ISO-8859-1'` parameter handles special characters in facility names (important for Canadian bilingual names with accents).
 
 ### Filtering for Museums
 
-
 ```python
 df = df[df.ODCAF_Facility_Type == 'museum']
 ```
-
 
 The dataset contains various cultural facilities (theaters, galleries, etc.). I filtered to focus solely on museums, creating a more homogeneous dataset for clustering.
 
@@ -64,16 +68,13 @@ The dataset contains various cultural facilities (theaters, galleries, etc.). I 
 
 ### Extracting Geographic Coordinates
 
-
 ```python
 df = df[['Latitude', 'Longitude']]
 ```
 
-
 For geographic clustering, we only need location data. Other attributes like museum name or type would be useful for interpretation but aren't needed for the clustering algorithm.
 
 ### Handling Missing Values
-
 
 ```python
 df = df.replace('..', pd.NA)
@@ -81,26 +82,22 @@ df = df.dropna()
 df = df.astype('float')
 ```
 
-
 The dataset used '..' as a placeholder for missing coordinates. I replaced these with `pd.NA` (pandas' missing value indicator), then removed rows with missing coordinates. Finally, I converted coordinates to float type for numerical computations.
 
-This reduced our dataset from 1,938 museums to 1,607 with valid coordinates—still a substantial dataset for clustering.
+This reduced our dataset from 1,938 museums to 1,607 with valid coordinates-still a substantial dataset for clustering.
 
 ## Coordinate Scaling for DBSCAN
-
 
 ```python
 coords_scaled = df.copy()
 coords_scaled['Latitude'] = 2 * coords_scaled['Latitude']
 ```
 
-
 This is a subtle but important step. I multiplied latitude by 2 to account for the fact that at Canadian latitudes, one degree of longitude represents a shorter distance than one degree of latitude. This scaling ensures that Euclidean distance in our transformed space better approximates actual geographic distance.
 
 Without this adjustment, clusters might be stretched east-west because the algorithm would treat longitude degrees as equivalent to latitude degrees.
 
 ## Building the DBSCAN Model
-
 
 ```python
 min_samples = 3
@@ -111,10 +108,9 @@ dbscan = DBSCAN(eps=eps, min_samples=min_samples, metric=metric)
 df['Cluster'] = dbscan.fit_predict(coords_scaled)
 ```
 
-
 ### Parameter Choices
 
-**min_samples=3**: A cluster must contain at least 3 museums. This prevents considering pairs of nearby museums as clusters—we want genuine concentrations of cultural institutions.
+**min_samples=3**: A cluster must contain at least 3 museums. This prevents considering pairs of nearby museums as clusters-we want genuine concentrations of cultural institutions.
 
 **eps=1.0**: The neighborhood radius. Given our scaled coordinates, this means roughly 1 degree of latitude/longitude (approximately 100km in Canada). This captures regional concentrations without making clusters too large.
 
@@ -122,13 +118,11 @@ df['Cluster'] = dbscan.fit_predict(coords_scaled)
 
 ## Visualizing DBSCAN Results
 
-
 ```python
 def plot_clustered_locations(df, title='Museums Clustered by Proximity'):
     gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df['Longitude'], df['Latitude']), crs="EPSG:4326")
     gdf = gdf.to_crs(epsg=3857)
 ```
-
 
 ### Understanding the Coordinate Systems
 
@@ -144,7 +138,6 @@ def plot_clustered_locations(df, title='Museums Clustered by Proximity'):
 
 ### Separating Noise from Clusters
 
-
 ```python
 non_noise = gdf[gdf['Cluster'] != -1]
 noise = gdf[gdf['Cluster'] == -1]
@@ -153,24 +146,20 @@ noise.plot(ax=ax, color='k', markersize=30, ec='r', alpha=1, label='Noise')
 non_noise.plot(ax=ax, column='Cluster', cmap='tab10', markersize=30, ec='k', legend=False, alpha=0.6)
 ```
 
-
 DBSCAN labels noise points as -1. I plotted these separately:
 
-- **Noise points**: Black with red edges, fully opaque—these are isolated museums not part of regional clusters
-- **Clustered points**: Colored by cluster ID with black edges, semi-transparent—regional concentrations
+- **Noise points**: Black with red edges, fully opaque-these are isolated museums not part of regional clusters
+- **Clustered points**: Colored by cluster ID with black edges, semi-transparent-regional concentrations
 
 ### Adding the Basemap
-
 
 ```python
 ctx.add_basemap(ax, source='./Canada.tif', zoom=4)
 ```
 
-
-The basemap provides geographic context, showing provincial boundaries, cities, and geography. This helps interpret clusters—are they concentrated in major cities? Near transportation hubs?
+The basemap provides geographic context, showing provincial boundaries, cities, and geography. This helps interpret clusters-are they concentrated in major cities? Near transportation hubs?
 
 ## Building the HDBSCAN Model
-
 
 ```python
 min_samples = None
@@ -180,14 +169,13 @@ hdb = hdbscan.HDBSCAN(min_samples=min_samples, min_cluster_size=min_cluster_size
 df['Cluster'] = hdb.fit_predict(coords_scaled)
 ```
 
-
 ### HDBSCAN Parameters
 
-**min_cluster_size=3**: Similar to DBSCAN's min_samples, but more intuitive—the minimum number of points to form a cluster.
+**min_cluster_size=3**: Similar to DBSCAN's min_samples, but more intuitive-the minimum number of points to form a cluster.
 
 **min_samples=None**: When set to None, HDBSCAN defaults to using min_cluster_size. You can set it explicitly for more conservative clustering (higher min_samples means denser regions required).
 
-**Key Difference from DBSCAN**: HDBSCAN builds a hierarchy of clusters at different density levels, then extracts the most stable clusters. This means it can find clusters of varying densities—dense urban clusters and sparser rural clusters in the same analysis.
+**Key Difference from DBSCAN**: HDBSCAN builds a hierarchy of clusters at different density levels, then extracts the most stable clusters. This means it can find clusters of varying densities-dense urban clusters and sparser rural clusters in the same analysis.
 
 ## Comparing DBSCAN and HDBSCAN Results
 
@@ -225,7 +213,7 @@ df['Cluster'] = hdb.fit_predict(coords_scaled)
 
 1. **Density-Based Clustering Handles Complex Shapes**: Unlike K-Means, DBSCAN and HDBSCAN can identify non-spherical clusters, perfect for geographic concentrations that follow coastlines, transportation routes, or regional boundaries.
 
-2. **Noise Identification is Valuable**: Not every point needs to be in a cluster. Identifying isolated museums as noise provides insights—these might be rural institutions or specialized facilities serving specific communities.
+2. **Noise Identification is Valuable**: Not every point needs to be in a cluster. Identifying isolated museums as noise provides insights-these might be rural institutions or specialized facilities serving specific communities.
 
 3. **Coordinate System Matters**: Properly handling geographic projections ensures accurate distance calculations and correct basemap alignment. Always match coordinate reference systems when combining data sources.
 
@@ -274,3 +262,16 @@ DBSCAN and HDBSCAN provide powerful tools for geographic clustering, automatical
 For the Canadian museums dataset, both algorithms successfully identified regional concentrations of cultural institutions while flagging isolated museums as noise. HDBSCAN's ability to handle varying densities makes it particularly well-suited for geographic data spanning urban and rural areas.
 
 The visualization on a basemap transforms abstract cluster labels into interpretable geographic insights, enabling stakeholders to understand cultural institution distribution and make data-driven decisions about cultural policy, tourism development, and resource allocation.
+
+---
+
+## 📓 Jupyter Notebook
+
+Want to explore the complete code and run it yourself? Access the full Jupyter notebook with detailed implementations and visualizations:
+
+**[→ View Notebook on GitHub](https://github.com/joneshshrestha/machine-learning-python/blob/main/Clustering/DBSCAN-HDBSCAN/comparing_dbscan_hdbscan.ipynb)**
+
+You can also run it interactively:
+
+- [Open in Google Colab](https://colab.research.google.com/github/joneshshrestha/machine-learning-python/blob/main/Clustering/DBSCAN-HDBSCAN/comparing_dbscan_hdbscan.ipynb)
+- [Open in Binder](https://mybinder.org/v2/gh/joneshshrestha/machine-learning-python/main?filepath=Clustering/DBSCAN-HDBSCAN/comparing_dbscan_hdbscan.ipynb)
