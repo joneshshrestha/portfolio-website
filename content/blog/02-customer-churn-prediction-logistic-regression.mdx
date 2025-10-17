@@ -1,0 +1,265 @@
+---
+title: 'Predicting Customer Churn with Logistic Regression'
+date: '2024-01-20'
+author: 'Jonesh Shrestha'
+---
+
+## Introduction
+
+Customer churn—when customers stop doing business with a company—is a critical concern for telecommunications companies. It's far more expensive to acquire new customers than to retain existing ones, so being able to predict which customers are likely to churn allows companies to take proactive measures. In this tutorial, I'll show you how to build a logistic regression model to predict customer churn based on various customer characteristics and behaviors.
+
+## Understanding the Problem
+
+We're working with telecom customer data that includes demographic information, service usage patterns, and whether the customer ultimately churned. Our goal is to predict whether a customer will churn (1) or stay (0) based on features like:
+
+- Tenure (how long they've been a customer)
+- Age
+- Income
+- Service usage patterns
+- Equipment ownership
+
+## Why Logistic Regression?
+
+Logistic regression is ideal for binary classification problems like churn prediction because it outputs probabilities between 0 and 1. Unlike linear regression which predicts continuous values, logistic regression is specifically designed for classification tasks. It's also interpretable—we can understand exactly how each feature influences the churn probability.
+
+## Data Preprocessing and Feature Selection
+
+The first step is to load our data and select the relevant features. I focused on features that would reasonably impact customer churn:
+
+
+```python
+df = df[['tenure', 'age', 'address', 'income', 'ed', 'employ', 'equip', 'callcard', 'wireless', 'churn']]
+```
+
+
+### Converting Target Variable
+
+The churn column came in as a float, but since it represents a binary outcome (churn or no churn), I converted it to an integer for clarity:
+
+
+```python
+df['churn'] = df['churn'].astype(int)
+```
+
+
+Our dataset contains 200 observations with 10 variables, which is a reasonable size for building an initial model and demonstrating the methodology.
+
+## Feature Scaling: Why It Matters
+
+Here's something crucial that many beginners overlook: algorithms like logistic regression and SVM are sensitive to feature scales. If one feature ranges from 0-100 and another from 0-100,000, the model will give disproportionate importance to the larger-scale feature.
+
+That's why I standardized all features to have a mean of 0 and standard deviation of 1:
+
+
+```python
+X = preprocessing.StandardScaler().fit_transform(X)
+```
+
+
+This ensures all features contribute equally to the model's decision-making process, preventing the model from being biased toward features with larger numerical ranges.
+
+## Train/Test Split
+
+I split the data using an 80/20 ratio:
+
+
+```python
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=4)
+```
+
+
+This gave us:
+
+- Training set: 160 samples
+- Test set: 40 samples
+
+## Building the Logistic Regression Model
+
+### Understanding Regularization
+
+One of the most important concepts in machine learning is preventing overfitting—when a model performs well on training data but poorly on new data. I used regularization to address this:
+
+
+```python
+LR = LogisticRegression(C=0.01, solver='liblinear').fit(X_train, y_train)
+```
+
+
+Let me explain these parameters:
+
+**C (Regularization Parameter)**: This controls the strength of regularization. A smaller C value means stronger regularization, which penalizes large coefficients more heavily. I used `C=0.01` to apply fairly strong regularization. This prevents the model from assigning very large weights to features, which helps it generalize better to unseen data rather than memorizing the training data.
+
+**Solver**: The `liblinear` solver is an algorithm used to minimize the cost function (the measure of how wrong our predictions are). It's particularly efficient for smaller datasets like ours.
+
+Think of regularization like adding friction to a car—it prevents the model from going too fast and overshooting the optimal solution.
+
+## Making Predictions
+
+Logistic regression gives us two types of predictions:
+
+### Binary Predictions
+
+
+```python
+yhat = LR.predict(X_test)
+```
+
+
+This gives us hard predictions: 0 or 1 for each customer.
+
+### Probability Predictions
+
+
+```python
+yhat_prob = LR.predict_proba(X_test)
+```
+
+
+This returns the probability that each customer belongs to each class. This is valuable because it gives us confidence levels—we can prioritize reaching out to customers with high churn probabilities.
+
+## Model Evaluation
+
+### Jaccard Index
+
+The Jaccard index measures the similarity between our predicted set and the actual set:
+
+
+```python
+from sklearn.metrics import jaccard_score
+jaccard_score(y_test, yhat, pos_label=0)
+```
+
+
+I specified `pos_label=0` because the default assumption is that class 1 is positive, but in our case, staying (class 0) is what we want to predict correctly. This metric essentially tells us what proportion of customers we correctly classified.
+
+### Confusion Matrix
+
+The confusion matrix is invaluable for understanding exactly where our model succeeds and fails:
+
+
+```python
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
+cm = confusion_matrix(y_test, yhat)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[0,1])
+disp.plot()
+```
+
+
+This shows us:
+
+- **True Negatives**: Customers we correctly predicted would stay
+- **True Positives**: Customers we correctly predicted would churn
+- **False Positives**: Customers we predicted would churn but didn't
+- **False Negatives**: Customers we predicted would stay but churned
+
+In a business context, false negatives (missing customers who will churn) are particularly costly because we lose the opportunity to intervene.
+
+### Classification Report
+
+The classification report provides precision, recall, and F1-score for each class:
+
+
+```python
+print(classification_report(y_test, yhat))
+```
+
+
+From our results:
+
+- **Precision for non-churn (0)**: 0.72 - When we predict a customer won't churn, we're right 72% of the time
+- **Recall for non-churn (0)**: 0.72 - We correctly identify 72% of customers who don't churn
+- **Overall accuracy**: 0.65 - We correctly classify 65% of customers
+
+### Log Loss
+
+Log loss is particularly interesting because it penalizes confident wrong predictions more heavily:
+
+
+```python
+from sklearn.metrics import log_loss
+log_loss(y_test, yhat_prob)
+```
+
+
+This metric uses the probability predictions (`yhat_prob`) and rewards both correctness and appropriate confidence. If you predict 90% probability of churn but the customer doesn't churn, the penalty is much higher than if you had predicted 60% probability.
+
+## Experimenting with Different Parameters
+
+To find the best model, I experimented with different solver and regularization values:
+
+
+```python
+LR = LogisticRegression(solver='lbfgs', C=0.1).fit(X_train, y_train)
+```
+
+
+The `lbfgs` solver is another optimization algorithm that can sometimes perform better, particularly on larger datasets. I also increased C to 0.1, which reduces regularization slightly, allowing the model more flexibility.
+
+Interestingly, this resulted in higher log loss than the previous model, suggesting that the stronger regularization with `C=0.01` actually helped our model generalize better.
+
+## Feature Engineering: Testing Feature Importance
+
+To understand which features contribute most to predictions, I removed the `equip` feature and retrained the model:
+
+
+```python
+df = df[['tenure', 'age', 'address', 'income', 'ed', 'employ', 'callcard', 'wireless', 'churn']]
+```
+
+
+This kind of experimentation helps us understand feature importance. If removing a feature doesn't significantly impact performance, that feature may not be very important for prediction.
+
+## Visualizing Feature Importance
+
+One powerful aspect of logistic regression is interpretability. I visualized the feature coefficients to understand which factors most influence churn:
+
+
+```python
+coefficients = pd.Series(LR.coef_[0], index=df.columns[:-1])
+coefficients.sort_values().plot(kind='barh')
+plt.title('Feature coefficients in Logistic Regression Churn Model')
+plt.xlabel('Coefficient value')
+plt.show()
+```
+
+
+The coefficients tell us:
+
+- **Positive coefficients**: Features that increase churn probability
+- **Negative coefficients**: Features that decrease churn probability
+- **Magnitude**: How strongly each feature influences the prediction
+
+For instance, if tenure has a large negative coefficient, it means longer-tenured customers are less likely to churn—which makes intuitive business sense.
+
+## Key Takeaways
+
+1. **Scaling is Essential**: For algorithms like logistic regression that are sensitive to feature scales, standardization ensures fair treatment of all features regardless of their original ranges.
+
+2. **Regularization Prevents Overfitting**: The regularization parameter C controls model complexity. Stronger regularization (smaller C) helps models generalize better by preventing them from assigning excessive importance to any single feature.
+
+3. **Multiple Evaluation Metrics Matter**: Different metrics tell different parts of the story:
+
+   - Accuracy gives overall performance
+   - Precision/recall show class-specific performance
+   - Log loss evaluates prediction confidence
+   - Confusion matrix shows error types
+
+4. **Interpretability is Valuable**: Being able to visualize and understand feature coefficients allows business stakeholders to trust the model and understand what drives churn.
+
+5. **Experimentation is Key**: Testing different solvers, regularization values, and feature combinations helps identify the best model for your specific problem.
+
+## Business Applications
+
+This churn prediction model enables businesses to:
+
+- **Prioritize Retention Efforts**: Focus on customers with high churn probability
+- **Personalize Interventions**: Understanding feature importance reveals which factors to address (e.g., if tenure is important, focus on early customer engagement)
+- **Optimize Resource Allocation**: Direct retention budgets toward customers most at risk
+- **Measure Intervention Effectiveness**: Track whether retention efforts reduce churn among high-risk customers
+
+## Conclusion
+
+Logistic regression provides a powerful, interpretable approach to customer churn prediction. By carefully preprocessing data, applying appropriate regularization, and evaluating models using multiple metrics, we can build reliable predictions that drive business value. The key strengths of this approach are its simplicity, interpretability, and effectiveness for binary classification problems like churn prediction.
+
+Remember, the goal isn't just to build a model that makes predictions—it's to build a model that provides actionable insights that can be used to reduce churn and improve customer retention.

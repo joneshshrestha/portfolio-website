@@ -1,0 +1,298 @@
+---
+title: 'Understanding Principal Component Analysis (PCA) for Dimensionality Reduction'
+date: '2024-02-20'
+author: 'Jonesh Shrestha'
+---
+
+## Introduction
+
+When working with high-dimensional data, we often face challenges: computational expense, difficulty visualizing patterns, and the curse of dimensionality. Principal Component Analysis (PCA) is a powerful technique for reducing dimensions while preserving the most important information. In this tutorial, I'll walk you through understanding PCA from first principles using bivariate data, then apply it to the Iris dataset for practical dimensionality reduction and visualization.
+
+## What is PCA?
+
+PCA transforms your data into a new coordinate system where:
+
+- The first axis (principal component) points in the direction of maximum variance
+- The second axis points in the direction of maximum remaining variance, perpendicular to the first
+- And so on for additional dimensions
+
+Think of it like rotating your data to find the most informative viewing angles. Instead of looking at data along the original feature axes, we look along the axes that show the most variation.
+
+## Part 1: Visualizing PCA with Bivariate Data
+
+### Generating Correlated Data
+
+
+```python
+np.random.seed(42)
+mean = [0, 0]
+cov = [[3, 2], [2, 2]]
+X = np.random.multivariate_normal(mean=mean, cov=cov, size=200)
+```
+
+
+Let me explain this covariance matrix:
+
+- **Diagonal elements [3, 2]**: These are variances—how spread out each variable is
+  - Variance of X1 = 3 (more spread)
+  - Variance of X2 = 2 (less spread)
+- **Off-diagonal elements [2, 2]**: This is covariance—how X1 and X2 vary together
+  - Covariance = 2 (positive relationship)
+
+The positive covariance means when X1 increases, X2 tends to increase too. This creates the elliptical pattern you see in scatter plots of correlated data.
+
+Setting `np.random.seed(42)` ensures reproducibility—critical for demonstrating concepts consistently.
+
+### Performing PCA
+
+
+```python
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X)
+```
+
+
+This fits PCA to our data and transforms it into the principal component space.
+
+### Understanding Principal Components
+
+
+```python
+components = pca.components_
+```
+
+
+The components are unit vectors showing the direction of each principal component. Each row is one principal component—a direction in the original feature space.
+
+### Explained Variance Ratio
+
+
+```python
+pca.explained_variance_ratio_
+# Output: [0.91, 0.09]  (approximately)
+```
+
+
+This tells us that:
+
+- **First PC captures ~91% of variance**: Most data variation is along this direction
+- **Second PC captures ~9% of variance**: Much less information in this direction
+
+If we only keep the first principal component, we retain 91% of the information while reducing from 2D to 1D!
+
+### Projecting Data onto Principal Components
+
+
+```python
+projection_pc1 = np.dot(X, components[0])
+projection_pc2 = np.dot(X, components[1])
+```
+
+
+Although the method is called `dot()`, this is actually matrix multiplication since our matrices are 2D. For each data point, we calculate how far it projects along each principal component direction.
+
+Think of projection like casting a shadow: if you shine a light perpendicular to PC1, the shadow of each point on PC1 is its projection.
+
+### Visualizing Projections
+
+
+```python
+x_pc1 = projection_pc1 * components[0][0]
+x_pc2 = projection_pc1 * components[0][1]
+```
+
+
+These calculations convert scalar projections back into 2D coordinates for visualization. We multiply the projection distance by the component direction to get the actual coordinates of the projected points.
+
+The visualization shows:
+
+- **Original data**: The correlated elliptical cloud
+- **Projections onto PC1**: Points collapsed onto the major axis
+- **Projections onto PC2**: Points collapsed onto the minor axis
+
+This clearly demonstrates how PC1 captures most variation (projected points spread widely) while PC2 captures less (projected points clustered tightly).
+
+## Part 2: PCA for Dimensionality Reduction on Iris Dataset
+
+### Loading and Standardizing Data
+
+
+```python
+iris = datasets.load_iris()
+X = iris.data
+y = iris.target
+target_names = iris.target_names
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+```
+
+
+The Iris dataset has 4 features:
+
+- Sepal length
+- Sepal width
+- Petal length
+- Petal width
+
+**Why standardize?** PCA is sensitive to feature scales. If petal length ranges from 1-7 cm while sepal width ranges from 2-5 cm, petal length would dominate the principal components simply because it has larger numbers, not because it contains more information. Standardization ensures each feature contributes fairly.
+
+### Reducing to 2D
+
+
+```python
+pca_iris = PCA(n_components=2)
+X_pca = pca_iris.fit_transform(X_scaled)
+```
+
+
+We're reducing from 4D to 2D, making the data visualizable while retaining most information.
+
+### Visualizing Iris Species in 2D
+
+
+```python
+colors = ['navy', 'turquoise', 'darkorange']
+
+for color, i, target_name in zip(colors, [0,1,2], target_names):
+    plt.scatter(X_pca[y == i, 0], X_pca[y == i, 1], color=color, s=50, ec='k', alpha=0.7, lw=lw, label=target_name)
+```
+
+
+### Understanding Boolean Masking
+
+`y == i` creates a boolean array where True indicates samples of species i. Using this as an index:
+
+- `X_pca[y == i, 0]` selects all samples of species i, first principal component
+- `X_pca[y == i, 1]` selects all samples of species i, second principal component
+
+This elegant numpy technique filters data by class without explicit loops.
+
+### Information Retained
+
+
+```python
+100 * pca_iris.explained_variance_ratio_.sum()
+# Output: ~95.8%
+```
+
+
+Amazing! Just 2 components capture 95.8% of the original 4D variance. This dramatic reduction enables visualization with minimal information loss.
+
+The 2D plot clearly separates the three Iris species, showing that the two most important feature combinations effectively distinguish between species.
+
+## Determining Optimal Number of Components
+
+
+```python
+pca = PCA()  # No n_components specified = keep all
+pca.fit_transform(X_scaled)
+```
+
+
+By not specifying `n_components`, we get all principal components. This lets us analyze how much each component contributes.
+
+### Scree Plot: Visualizing Explained Variance
+
+
+```python
+explained_variance_ratio = pca.explained_variance_ratio_
+
+plt.bar(x=range(1, len(explained_variance_ratio)+1), height=explained_variance_ratio, alpha=1, align='center', label='PC explained variance ratio')
+```
+
+
+The bar chart shows each component's contribution. Typically, the first few components explain most variance, with later components adding decreasing amounts.
+
+### Cumulative Explained Variance
+
+
+```python
+cumulative_variance = np.cumsum(explained_variance_ratio)
+plt.step(range(1, 5), cumulative_variance, where='mid', linestyle='--', lw=3, color='red', label='Cumulative Explained Variance')
+```
+
+
+The `np.cumsum()` function calculates running totals:
+
+- PC1: 73% variance
+- PC1 + PC2: 96% variance
+- PC1 + PC2 + PC3: 99% variance
+- All 4 PCs: 100% variance
+
+This cumulative plot helps decide how many components to keep. A common approach is choosing enough components to explain 90-95% of variance—a good balance of dimensionality reduction and information retention.
+
+## Key Takeaways
+
+1. **PCA Finds Maximum Variance Directions**: The first principal component points in the direction where data varies most. Each subsequent component is perpendicular to previous ones and captures maximum remaining variance.
+
+2. **Covariance Matrix Drives PCA**: The diagonal elements show individual feature variance, while off-diagonal elements show how features vary together. PCA essentially diagonalizes this covariance matrix.
+
+3. **Standardization is Critical**: Without standardization, features with larger scales dominate principal components. Always standardize before PCA unless features are already on the same scale.
+
+4. **Explained Variance Ratio Guides Decisions**: This metric tells you how much information each component contains, helping decide how many components to keep.
+
+5. **Cumulative Variance Shows Trade-offs**: The cumulative plot clearly shows the trade-off between dimensionality reduction and information retention.
+
+6. **Boolean Masking Enables Efficient Filtering**: Using boolean arrays as indices (`X[y == i]`) is a powerful numpy pattern for selecting subsets without loops.
+
+## Practical Applications
+
+PCA enables numerous applications:
+
+### Visualization
+
+- **High-dimensional data**: Reduce to 2D or 3D for plotting
+- **Pattern discovery**: Reveal structure not visible in original dimensions
+- **Outlier detection**: Anomalies often stand out in reduced space
+
+### Computational Efficiency
+
+- **Faster training**: Fewer features mean faster model training
+- **Reduced storage**: Store transformed data with fewer dimensions
+- **Noise reduction**: Minor components often represent noise
+
+### Feature Engineering
+
+- **Multicollinearity reduction**: PCA creates uncorrelated features
+- **Information compression**: Represent data compactly
+- **Signal extraction**: Identify underlying patterns in noisy data
+
+## When to Use PCA
+
+**Good candidates:**
+
+- High-dimensional numeric data
+- Correlated features (PCA removes correlation)
+- Visualization needs
+- Computational constraints
+
+**Poor candidates:**
+
+- Sparse data (PCA creates dense representations)
+- Categorical data (requires numeric features)
+- When interpretability is critical (principal components are combinations of original features)
+
+## Advanced Considerations
+
+### Interpreting Components
+
+While powerful, PCA has a cost: principal components are linear combinations of original features, making them less interpretable. PC1 might be "0.5×sepal_length + 0.3×petal_length + ...", which lacks clear meaning.
+
+For interpretability-critical applications, consider:
+
+- Feature selection (choosing important original features)
+- Sparse PCA (constrains components to use fewer features)
+- Domain-driven dimensionality reduction
+
+### Kernel PCA
+
+Standard PCA finds linear combinations. Kernel PCA can capture non-linear relationships by first mapping data to a higher-dimensional space, similar to kernel SVM.
+
+## Conclusion
+
+Principal Component Analysis provides an elegant solution to dimensionality reduction: rotate your data to align with variance directions, then keep only the directions with significant variance. This simple idea enables visualization of high-dimensional data, computational efficiency, and noise reduction.
+
+Through our bivariate example, we saw how PCA identifies the direction of maximum spread and can project data onto these directions. With the Iris dataset, we reduced 4D data to 2D while retaining 96% of information, creating a clear visualization that distinguishes between species.
+
+The key to successful PCA is understanding what you're giving up—interpretability and some information—and what you're gaining—reduced dimensionality, efficiency, and visualization capability. When used appropriately, PCA is an invaluable tool in the machine learning toolkit.

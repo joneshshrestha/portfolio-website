@@ -79,8 +79,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </Link>
               <span className='border-l border-gray-300 dark:border-gray-700 h-5 self-center mx-2'></span>
               <a
-                href='./JoneshResume.pdf'
-                download
+                href='/Resume.pdf'
+                target='_blank'
+                rel='noopener noreferrer'
                 className='hover:text-primary-light dark:hover:text-primary-dark transition-colors'
               >
                 Resume
@@ -155,8 +156,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </Link>
               <div className='pt-4 border-t border-gray-200 dark:border-gray-700'>
                 <a
-                  href='./JoneshResume.pdf'
-                  download
+                  href='/Resume.pdf'
+                  target='_blank'
+                  rel='noopener noreferrer'
                   className='text-primary-light dark:text-primary-dark hover:underline'
                 >
                   Resume
@@ -184,12 +186,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               LinkedIn
             </a>
             <a
-              href='https://twitter.com/shresthajonesh'
+              href='https://x.com/shresthajonesh'
               target='_blank'
               rel='noopener noreferrer'
               className='text-primary-light dark:text-primary-dark hover:underline'
             >
-              Twitter
+              𝕏
             </a>
             <a
               href='https://github.com/joneshshrestha/'

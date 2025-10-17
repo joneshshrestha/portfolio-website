@@ -1,0 +1,348 @@
+---
+title: 'Hyperparameter Tuning with GridSearchCV'
+date: '2024-02-25'
+author: 'Jonesh Shrestha'
+---
+
+## Introduction
+
+Building a machine learning model isn't just about choosing an algorithm—it's about finding the optimal configuration of that algorithm's hyperparameters. In this tutorial, I'll show you how to use GridSearchCV to systematically search for the best hyperparameters for a Support Vector Machine classifier on the Iris dataset. This approach transforms hyperparameter tuning from guesswork into a structured, automated process.
+
+## Understanding Hyperparameters
+
+Hyperparameters are settings you choose before training begins:
+
+- **Learning algorithm parameters**: Like C (regularization) in SVM
+- **Model structure**: Like number of layers in a neural network
+- **Training process**: Like learning rate or batch size
+
+Unlike model parameters (like weights) that the algorithm learns, hyperparameters must be set by you. Choosing them well dramatically impacts model performance.
+
+## The Problem with Manual Tuning
+
+Without GridSearchCV, hyperparameter tuning is tedious:
+
+
+```python
+# Manual approach - inefficient!
+model1 = SVC(C=0.1, gamma=1, kernel='rbf')
+model1.fit(X_train, y_train)
+score1 = model1.score(X_test, y_test)
+
+model2 = SVC(C=1, gamma=1, kernel='rbf')
+model2.fit(X_train, y_train)
+score2 = model2.score(X_test, y_test)
+# ... repeat for every combination
+```
+
+
+This is error-prone, time-consuming, and makes it hard to ensure you've tried all combinations.
+
+## GridSearchCV: Systematic Hyperparameter Search
+
+GridSearchCV automates this process by:
+
+1. Defining a grid of hyperparameter values to try
+2. Training a model for each combination
+3. Evaluating each combination using cross-validation
+4. Selecting the best-performing combination
+
+## Dataset: Iris Classification
+
+
+```python
+from sklearn.datasets import load_iris
+
+df = load_iris()
+X = df.data
+y = df.target
+```
+
+
+The Iris dataset contains 150 flower samples with 4 features each, classified into 3 species. It's perfect for demonstrating GridSearchCV because:
+
+- Small enough to run quickly
+- Complex enough to show meaningful hyperparameter effects
+- Multi-class classification (not just binary)
+
+## Defining the Hyperparameter Grid
+
+
+```python
+param_grid = {
+    'C': [0.1, 1, 10, 100],
+    'gamma': [1, 0.1, 0.01, 0.001],
+    'kernel': ['linear', 'rbf', 'poly']
+}
+```
+
+
+This creates a grid with:
+
+- 4 values of C (regularization strength)
+- 4 values of gamma (kernel coefficient)
+- 3 kernel types
+
+Total combinations: 4 × 4 × 3 = **48 different models** to evaluate.
+
+### Understanding Each Hyperparameter
+
+**C (Regularization Parameter)**:
+
+- Controls the trade-off between maximizing margin and minimizing classification error
+- **Low C (0.1)**: Strong regularization, wider margin, may underfit
+- **High C (100)**: Weak regularization, narrower margin, may overfit
+- Think of C as tolerance for misclassification
+
+**gamma (Kernel Coefficient)**:
+
+- Defines how far the influence of a single training example reaches
+- **Low gamma (0.001)**: Far reach, smoother decision boundary
+- **High gamma (1)**: Close reach, more complex decision boundary
+- Only relevant for 'rbf' and 'poly' kernels
+
+**kernel**:
+
+- **'linear'**: Finds a straight line (or hyperplane) separating classes
+- **'rbf'** (Radial Basis Function): Can create circular/curved decision boundaries
+- **'poly'**: Polynomial decision boundaries
+
+## Setting Up GridSearchCV
+
+
+```python
+svc_model = SVC()
+
+grid_search = GridSearchCV(
+    estimator=svc_model,
+    param_grid=param_grid,
+    scoring='accuracy',
+    cv=5,
+    n_jobs=-1,
+    verbose=2
+)
+```
+
+
+### Understanding GridSearchCV Parameters
+
+**estimator=svc_model**: The machine learning model to optimize. Can be any scikit-learn estimator.
+
+**param_grid=param_grid**: Dictionary defining which hyperparameters to tune and what values to try.
+
+**scoring='accuracy'**: The metric to optimize. Other options include:
+
+- 'f1': For imbalanced datasets
+- 'precision': When false positives are costly
+- 'recall': When false negatives are costly
+- 'roc_auc': For probability-based evaluation
+
+**cv=5**: Use 5-fold cross-validation. This means:
+
+1. Split data into 5 parts
+2. Train on 4 parts, test on 1 part
+3. Repeat 5 times, each part serving as test set once
+4. Average the 5 scores
+
+This is more reliable than a single train/test split because it uses all data for both training and testing.
+
+**n_jobs=-1**: Use all available CPU cores for parallel processing. This dramatically speeds up grid search by training multiple models simultaneously. `-1` means "use all cores."
+
+**verbose=2**: Print progress information. Higher values provide more detail:
+
+- 0: Silent
+- 1: Basic progress
+- 2: Detailed progress (shows each fold for each parameter combination)
+
+## Running Grid Search
+
+
+```python
+grid_search.fit(X, y)
+```
+
+
+Output shows:
+
+```
+Fitting 5 folds for each of 48 candidates, totalling 240 fits
+```
+
+GridSearchCV trains 240 models (48 combinations × 5 folds each). With `n_jobs=-1`, these run in parallel, making the process much faster than sequential training.
+
+## Examining Results
+
+
+```python
+print('Best parameters found: ', grid_search.best_params_)
+print('Best estimator: ', grid_search.best_estimator_)
+```
+
+
+Output:
+
+```
+Best parameters found: {'C': 0.1, 'gamma': 0.1, 'kernel': 'poly'}
+Best estimator: SVC(C=0.1, gamma=0.1, kernel='poly')
+```
+
+GridSearchCV identified that a polynomial kernel with relatively low regularization (C=0.1) and moderate gamma (0.1) works best for this dataset.
+
+### Why These Parameters?
+
+- **Polynomial kernel**: Iris species have non-linear separations that polynomials can capture
+- **C=0.1**: Moderate regularization prevents overfitting on the small dataset
+- **gamma=0.1**: Balanced influence range—not too local, not too global
+
+## Making Predictions
+
+
+```python
+y_pred = grid_search.best_estimator_.predict(X_test)
+```
+
+
+The `best_estimator_` attribute gives us the fully trained model with optimal hyperparameters, ready for predictions.
+
+## Evaluating Performance
+
+
+```python
+print(classification_report(y_test, y_pred))
+```
+
+
+Output:
+
+```
+              precision    recall  f1-score   support
+
+           0       1.00      1.00      1.00        10
+           1       1.00      1.00      1.00         9
+           2       1.00      1.00      1.00        11
+
+    accuracy                           1.00        30
+   macro avg       1.00      1.00      1.00        30
+weighted avg       1.00      1.00      1.00        30
+```
+
+Perfect classification! All three Iris species were correctly identified with 100% accuracy on the test set. This demonstrates that GridSearchCV successfully found an excellent hyperparameter combination.
+
+## The Power of Cross-Validation
+
+Without cross-validation, you might get lucky with a specific train/test split but have a model that doesn't generalize. Cross-validation provides more robust evaluation by:
+
+1. **Using all data**: Every sample serves as both training and test data
+2. **Reducing variance**: Averaging across multiple splits gives more stable estimates
+3. **Detecting overfitting**: If CV score is much lower than training score, you're overfitting
+
+With 5-fold CV, each hyperparameter combination is evaluated 5 times, giving us confidence that the best parameters truly perform well, not just on one lucky split.
+
+## Key Takeaways
+
+1. **GridSearchCV Automates Hyperparameter Tuning**: No more manual trial and error. Define your grid, and GridSearchCV systematically evaluates all combinations.
+
+2. **Cross-Validation Provides Robust Evaluation**: Using CV instead of a single train/test split ensures selected hyperparameters generalize well to unseen data.
+
+3. **Parallelization Saves Time**: Setting `n_jobs=-1` uses all CPU cores, dramatically reducing search time. With 240 model fits, parallelization makes the difference between minutes and hours.
+
+4. **Scoring Metric Matters**: Choose a metric aligned with your goals. Accuracy works for balanced datasets, but consider F1, precision, or recall for imbalanced data or when different error types have different costs.
+
+5. **Best Estimator is Ready to Use**: GridSearchCV returns a fully trained model with optimal hyperparameters—no need to retrain.
+
+6. **Verbose Output Helps Monitoring**: Setting `verbose=2` lets you monitor progress, useful for long-running searches to ensure everything's working.
+
+## Practical Considerations
+
+### Grid Size vs. Computation Time
+
+More hyperparameters and values mean more combinations:
+
+- 3 hyperparameters × 4 values each × 5 folds = 320 fits
+- 4 hyperparameters × 5 values each × 10 folds = 6,250 fits
+
+For large grids:
+
+- Start with coarse grid (fewer values, wider spacing)
+- Use RandomizedSearchCV for very large search spaces
+- Consider Bayesian optimization for expensive models
+
+### Choosing Grid Values
+
+- **Logarithmic spacing**: For parameters like C and gamma, use [0.001, 0.01, 0.1, 1, 10, 100] rather than [1, 2, 3, 4, 5, 6]
+- **Domain knowledge**: Let your understanding of the problem guide initial ranges
+- **Iterative refinement**: Run coarse grid, then fine-tune around best values
+
+### Nested Cross-Validation
+
+For truly unbiased evaluation:
+
+
+```python
+# Outer CV for performance estimation
+# Inner CV for hyperparameter tuning
+outer_scores = cross_val_score(grid_search, X, y, cv=5)
+```
+
+
+This prevents "test set leakage" where you tune hyperparameters based on test performance.
+
+## Advanced Techniques
+
+### RandomizedSearchCV
+
+For very large search spaces:
+
+
+```python
+from sklearn.model_selection import RandomizedSearchCV
+
+random_search = RandomizedSearchCV(
+    estimator=svc_model,
+    param_distributions=param_grid,
+    n_iter=50,  # Try 50 random combinations
+    cv=5,
+    random_state=42
+)
+```
+
+
+Instead of exhaustively trying all combinations, randomly sample from the grid. Often finds good parameters faster than exhaustive search.
+
+### Custom Scoring Functions
+
+For specialized needs:
+
+
+```python
+from sklearn.metrics import make_scorer
+
+def custom_score(y_true, y_pred):
+    # Your custom logic
+    return score
+
+grid_search = GridSearchCV(
+    estimator=model,
+    param_grid=params,
+    scoring=make_scorer(custom_score)
+)
+```
+
+
+## Common Pitfalls
+
+1. **Data Leakage**: Don't fit preprocessing (like scaling) before cross-validation. Use pipelines to ensure preprocessing happens within each fold.
+
+2. **Overfitting to Validation Set**: With many hyperparameter combinations, you might overfit to the CV folds. Use nested CV for unbiased estimates.
+
+3. **Ignoring Computational Cost**: A grid with 1,000 combinations and 10-fold CV means 10,000 model fits. Be realistic about computation time.
+
+4. **Wrong Metric**: Optimizing for accuracy on imbalanced data leads to poor results. Choose metrics appropriate for your problem.
+
+## Conclusion
+
+GridSearchCV transforms hyperparameter tuning from an art into a science. By systematically evaluating all combinations using cross-validation, it finds optimal configurations while providing robust performance estimates.
+
+The key benefits—automation, parallelization, cross-validation, and immediate access to the best model—make GridSearchCV essential for any serious machine learning project. While it requires computational resources, the improvement in model performance and the time saved from manual tuning make it well worth the investment.
+
+Remember: hyperparameter tuning is not optional. Default parameters rarely give optimal results. GridSearchCV ensures you're squeezing maximum performance from your chosen algorithm, turning a mediocre model into an excellent one.

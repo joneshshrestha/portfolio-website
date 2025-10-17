@@ -1,4 +1,4 @@
-import type { GatsbyConfig } from 'gatsby'
+import type { GatsbyConfig } from 'gatsby';
 
 const config: GatsbyConfig = {
   pathPrefix: `/portfolio-website-gh-pages`,
@@ -20,10 +20,6 @@ const config: GatsbyConfig = {
       resolve: 'gatsby-plugin-mdx',
       options: {
         extensions: [`.mdx`, `.md`],
-        mdxOptions: {
-          remarkPlugins: [],
-          rehypePlugins: [],
-        },
       },
     },
     'gatsby-plugin-sharp',
@@ -53,6 +49,6 @@ const config: GatsbyConfig = {
       __key: 'blog',
     },
   ],
-}
+};
 
-export default config
+export default config;

@@ -1,0 +1,274 @@
+---
+title: 'Predicting CO2 Emissions with Linear and Multiple Linear Regression'
+date: '2024-01-25'
+author: 'Jonesh Shrestha'
+---
+
+## Introduction
+
+Understanding and predicting CO2 emissions from vehicles is crucial for environmental policy and consumer decision-making. In this tutorial, I'll walk you through building both simple and multiple linear regression models to predict CO2 emissions based on vehicle characteristics. This project demonstrates how regression analysis can reveal relationships between vehicle features and their environmental impact.
+
+## Understanding Linear Regression
+
+Linear regression is one of the fundamental algorithms in machine learning. It works by finding the best-fitting straight line (or hyperplane in multiple dimensions) through your data points. The beauty of linear regression lies in its simplicity and interpretability—we can clearly see how each feature influences the prediction.
+
+## Dataset Overview
+
+Our dataset contains information about 1,067 vehicles with 13 attributes including:
+
+- **MODELYEAR**: Year of the vehicle model
+- **MAKE**: Manufacturer
+- **MODEL**: Vehicle model name
+- **ENGINESIZE**: Engine size in liters
+- **CYLINDERS**: Number of cylinders
+- **FUELCONSUMPTION_CITY**: City fuel consumption (L/100 km)
+- **FUELCONSUMPTION_HWY**: Highway fuel consumption (L/100 km)
+- **FUELCONSUMPTION_COMB**: Combined fuel consumption (L/100 km)
+- **CO2EMISSIONS**: CO2 emissions in grams per kilometer (our target variable)
+
+## Data Exploration
+
+Before building any model, it's essential to explore the data. I started by selecting the most relevant features and examining their distributions:
+
+```python
+cdf = df[['ENGINESIZE', 'CYLINDERS', 'FUELCONSUMPTION_COMB', 'CO2EMISSIONS']]
+cdf.hist()
+plt.show()
+```
+
+Histograms help us understand:
+
+- The distribution of each feature
+- Whether data is skewed or normally distributed
+- If there are any obvious outliers
+- The range of values we're working with
+
+### Visualizing Relationships
+
+The next crucial step is understanding relationships between features and our target variable:
+
+```python
+plt.scatter(cdf.ENGINESIZE, cdf.CO2EMISSIONS)
+plt.xlabel('ENGINESIZE')
+plt.ylabel('CO2EMISSIONS')
+plt.show()
+```
+
+I created scatter plots for multiple feature-target combinations:
+
+- Engine size vs. CO2 emissions
+- Fuel consumption vs. CO2 emissions
+- Cylinders vs. CO2 emissions
+
+These visualizations revealed clear positive correlations—larger engines, more cylinders, and higher fuel consumption all correlate with increased CO2 emissions. This makes intuitive sense and gives us confidence that linear regression will work well.
+
+## Train/Test Split
+
+To properly evaluate model performance, I split the data into training and testing sets:
+
+```python
+msk = np.random.rand(len(df)) < 0.8
+train = cdf[msk]
+test = cdf[~msk]
+```
+
+This approach creates a boolean mask where approximately 80% of random values are True. I then use this mask to split the data:
+
+- The `train` dataset gets rows where the mask is True
+- The `test` dataset gets rows where the mask is False (`~msk` inverts the mask)
+
+This random split ensures our model trains on most of the data while reserving some unseen data for evaluation.
+
+## Simple Linear Regression: Engine Size
+
+Let's start with the simplest case—predicting CO2 emissions based solely on engine size:
+
+```python
+from sklearn import linear_model
+regr = linear_model.LinearRegression()
+
+train_x = np.asanyarray(train[['ENGINESIZE']])
+train_y = np.asanyarray(train[['CO2EMISSIONS']])
+regr.fit(train_x, train_y)
+
+print('Coefficients: ', regr.coef_)
+print('Intercept: ', regr.intercept_)
+```
+
+### Why asanyarray()?
+
+I used `np.asanyarray()` instead of `np.array()` because it's more efficient. The `asanyarray()` function doesn't create a new array if the existing data is already in the desired format—it just returns a reference to the original data. This saves memory and computation time, which becomes important with larger datasets.
+
+### Understanding the Results
+
+The model produced:
+
+- **Coefficient**: 38.48 - This means for every 1-liter increase in engine size, CO2 emissions increase by approximately 38.48 grams per kilometer
+- **Intercept**: 127.47 - This is the baseline CO2 emissions when engine size is zero (though this is theoretical, as no car has zero engine size)
+
+The equation of our line is: `CO2 = 38.48 × ENGINESIZE + 127.47`
+
+### Visualizing the Model
+
+```python
+plt.scatter(train.ENGINESIZE, train.CO2EMISSIONS)
+plt.plot(train_x, regr.coef_[0][0] * train_x + regr.intercept_[0])
+plt.xlabel('ENGINESIZE')
+plt.ylabel('CO2EMISSIONS')
+```
+
+This visualization overlays our regression line on the training data, allowing us to see how well the line fits the actual data points.
+
+## Model Evaluation
+
+### Multiple Metrics for Comprehensive Understanding
+
+I evaluated the model using three different metrics:
+
+```python
+test_x = np.asanyarray(test[['ENGINESIZE']])
+test_y = np.asanyarray(test[['CO2EMISSIONS']])
+test_y_ = regr.predict(test_x)
+
+print(f'Mean Absolute Error: {np.mean(np.absolute(test_y - test_y_)): .2f}')
+print(f'Residual sum of squares (MSE): {np.mean((test_y - test_y_) ** 2): .2f}')
+print(f'R2-score: {r2_score(test_y, test_y_)}')
+```
+
+**Mean Absolute Error (MAE)**: 22.16  
+This means on average, our predictions are off by about 22 grams per kilometer. In practical terms, this helps us understand the typical prediction error.
+
+**Mean Squared Error (MSE)**: 896.49  
+MSE squares the errors before averaging, which heavily penalizes large errors. This is useful because in emissions predictions, being way off is worse than being slightly off.
+
+**R²-score**: 0.77  
+This tells us that our model explains 77% of the variance in CO2 emissions. An R² of 1.0 would mean perfect predictions, while 0.0 would mean the model is no better than just predicting the average. At 0.77, we have a pretty good model, though there's room for improvement.
+
+### Formatting Numbers for Display
+
+Notice I used `.2f` formatting:
+
+```python
+print(f'Mean Absolute Error: {np.mean(np.absolute(test_y - test_y_)): .2f}')
+```
+
+The `.2f` converts the number into a string with two decimal points. While we could use `round()` to keep it as a number, using `.2f` is cleaner when we just want to display information to users.
+
+## Simple Linear Regression: Fuel Consumption
+
+Let's try a different feature—combined fuel consumption:
+
+```python
+train_x = np.asanyarray(train[['FUELCONSUMPTION_COMB']])
+test_x = np.asanyarray(test[['FUELCONSUMPTION_COMB']])
+
+regr.fit(train_x, train_y)
+```
+
+Results:
+
+- **Coefficient**: 15.95
+- **Intercept**: 71.03
+- **MAE**: 18.93
+- **MSE**: 676.48
+- **R²**: 0.75
+
+This model performs similarly to the engine size model, with slightly better MAE and MSE. This makes sense because fuel consumption directly relates to emissions—more fuel burned means more CO2 produced.
+
+## Multiple Linear Regression
+
+Now for the powerful part: using multiple features simultaneously. Instead of predicting based on just one feature, we can use several features together to make more accurate predictions.
+
+### Selecting Multiple Features
+
+```python
+train_x = np.asanyarray(train[['ENGINESIZE','CYLINDERS','FUELCONSUMPTION_COMB']])
+train_y = np.asanyarray(train[['CO2EMISSIONS']])
+regr.fit(train_x, train_y)
+```
+
+The model now learns how engine size, cylinders, and fuel consumption jointly influence CO2 emissions. The equation becomes:
+
+`CO2 = 11.57 × ENGINESIZE + 6.86 × CYLINDERS + 9.56 × FUELCONSUMPTION_COMB + 67.50`
+
+### Interpreting Coefficients
+
+Each coefficient tells us the impact of that feature while holding other features constant:
+
+- **ENGINESIZE (11.57)**: Each additional liter of engine size increases emissions by 11.57 g/km
+- **CYLINDERS (6.86)**: Each additional cylinder adds 6.86 g/km
+- **FUELCONSUMPTION_COMB (9.56)**: Each L/100km increase in fuel consumption adds 9.56 g/km
+
+### Improved Performance
+
+```python
+test_x = np.asanyarray(test[['ENGINESIZE','CYLINDERS','FUELCONSUMPTION_COMB']])
+test_y_ = regr.predict(test_x)
+
+print(f'Mean Squared Error: {np.mean((test_y_ - test_y) ** 2): .2f}')
+print(f'Variance Score: {regr.score(test_x, test_y): .2f}')
+```
+
+Results:
+
+- **MSE**: 575.09
+- **R² (Variance Score)**: 0.86
+
+Our R² jumped from 0.77 to 0.86! This significant improvement shows that using multiple features together provides much better predictions than any single feature alone.
+
+### Alternative R² Calculation
+
+I showed two ways to calculate R²:
+
+```python
+print(f'Variance Score: {regr.score(test_x, test_y): .2f}')
+print(f'Variance Score: {r2_score(test_y, test_y_): .2f}')
+```
+
+Both produce the same result. The `regr.score()` method is built into the regression model, while `r2_score()` is a standalone function from sklearn.metrics. Either approach works—it's a matter of preference.
+
+## Feature Engineering Experiment
+
+To further explore model performance, I tried using city and highway fuel consumption instead of combined:
+
+```python
+train_x = np.asanyarray(train[['ENGINESIZE','CYLINDERS','FUELCONSUMPTION_HWY', 'FUELCONSUMPTION_CITY']])
+```
+
+Results:
+
+- **MSE**: 573.23
+- **R²**: 0.86
+
+The performance is nearly identical to using combined fuel consumption. This makes sense because city and highway consumption are strongly correlated with combined consumption. However, this experiment demonstrates an important principle: sometimes breaking down aggregated features can provide additional insights, though in this case, it didn't significantly improve predictions.
+
+## Key Takeaways
+
+1. **Visual Exploration is Essential**: Before building models, visualize your data. Scatter plots quickly reveal whether relationships exist and whether linear regression is appropriate.
+
+2. **Multiple Metrics Tell Different Stories**:
+
+   - MAE gives average error in interpretable units
+   - MSE penalizes large errors more heavily
+   - R² shows proportion of variance explained
+
+3. **Multiple Features Improve Performance**: Moving from simple to multiple linear regression dramatically improved our R² from 0.77 to 0.86. Real-world phenomena are usually influenced by multiple factors, so multiple linear regression better captures reality.
+
+4. **Coefficient Interpretation**: Each coefficient tells us the isolated impact of one feature while controlling for others. This is powerful for understanding which factors matter most.
+
+5. **Feature Correlation**: Features like city/highway fuel consumption and combined fuel consumption are highly correlated. Using multiple correlated features doesn't always improve predictions because they contain similar information.
+
+## Practical Applications
+
+These regression models have real-world applications:
+
+- **Consumer Information**: Help buyers understand a vehicle's environmental impact before purchase
+- **Policy Making**: Inform emissions standards and regulations
+- **Manufacturing**: Guide engineers in designing more efficient vehicles
+- **Fleet Management**: Optimize vehicle selection for companies with large fleets
+
+## Conclusion
+
+Linear regression provides a powerful yet interpretable method for understanding and predicting CO2 emissions. By starting with simple linear regression to understand individual feature relationships, then advancing to multiple linear regression for improved predictions, we built a model that explains 86% of variance in CO2 emissions.
+
+The strength of this approach lies in its transparency—we can explain exactly how much each vehicle characteristic contributes to emissions, making it valuable for both technical and non-technical stakeholders. Whether you're a consumer choosing a car, a policy maker setting standards, or an engineer designing vehicles, these insights help make informed decisions about environmental impact.

@@ -3,6 +3,21 @@ node_modules/
 .cache/
 public/
 
+# Gatsby build files
+_gatsby/
+page-data/
+app-*.js*
+component-*.js*
+framework-*.js*
+webpack-runtime-*.js*
+webpack.stats.json
+sitemap-*.xml
+styles.*.css
+~partytown/
+404.html
+index.html
+chunk-map.json
+
 # Environment variables
 .env*
 !.env.example
@@ -33,4 +48,4 @@ lerna-debug.log*
 # Dependency lock files (optional)
 # Uncomment if using Yarn or pnpm and you want to ignore them
 # yarn.lock
-# pn
+# pnpm-lock.yaml

@@ -1,0 +1,317 @@
+---
+title: 'Credit Card Fraud Detection with Decision Trees and SVM'
+date: '2024-02-10'
+author: 'Jonesh Shrestha'
+---
+
+## Introduction
+
+Credit card fraud is a significant problem in the financial industry, causing billions of dollars in losses annually. In this tutorial, I'll walk you through building machine learning models to detect fraudulent credit card transactions. This project demonstrates how to handle highly imbalanced datasets and optimize model performance for real-world fraud detection scenarios.
+
+## Understanding the Challenge
+
+Fraud detection presents unique challenges:
+
+- **Extreme Class Imbalance**: Around 99.8% of transactions are legitimate, only ~0.2% are fraudulent
+- **Cost of Errors**: Missing fraud (false negatives) is costly, but flagging legitimate transactions (false positives) frustrates customers
+- **Large Datasets**: Real-world transaction data is massive, requiring efficient algorithms
+- **Feature Engineering**: Transaction features need careful preprocessing
+
+## Dataset Overview
+
+Our dataset contains 284,807 credit card transactions with 31 features:
+
+- **Time**: Seconds elapsed between this transaction and the first transaction
+- **V1-V28**: Principal components from PCA transformation (for privacy)
+- **Amount**: Transaction amount
+- **Class**: 0 for legitimate, 1 for fraudulent
+
+The features V1-V28 are already transformed using PCA to protect sensitive customer information, which is common in financial datasets.
+
+## Data Exploration and Visualization
+
+### Understanding Class Imbalance
+
+
+```python
+labels = big_df['Class'].unique()
+sizes = big_df['Class'].value_counts().values
+
+fig, ax = plt.subplots()
+ax.pie(sizes, labels=labels, autopct='%1.3f%%')
+ax.set_title('Target Variable Value Counts')
+plt.show()
+```
+
+
+The pie chart reveals the extreme imbalance: approximately 99.8% legitimate transactions and only 0.2% fraudulent. This imbalance is realistic—most transactions are legitimate—but it creates modeling challenges because the algorithm might simply learn to predict "legitimate" for everything and still achieve 99.8% accuracy!
+
+### Analyzing Transaction Amounts
+
+
+```python
+plt.hist(big_df['Amount'], bins=6, color='blue')
+plt.xlabel('Amount')
+plt.ylabel('Frequency')
+plt.show()
+
+print('The maximum value is: ', big_df['Amount'].max())
+print('The minimum value is: ', big_df['Amount'].min())
+print('The transaction amount that is greater than or equals to 90% of the amount is: ', np.percentile(big_df['Amount'], 90))
+```
+
+
+This analysis revealed:
+
+- Maximum transaction: $25,691.16
+- Minimum transaction: $0.00
+- 90th percentile: $203.00
+
+This tells us that 90% of transactions are under $203, with a long tail of high-value transactions. Understanding this distribution helps us interpret model predictions—unusual amounts might correlate with fraud.
+
+## Data Replication for Demonstration
+
+
+```python
+n_replicas = 10
+big_df = pd.DataFrame(np.repeat(df.values, n_replicas, axis=0), columns=df.columns)
+```
+
+
+Since our original dataset is relatively small for demonstrating computational performance, I replicated it 10 times. Using `np.repeat()` with `axis=0` duplicates the rows, creating a dataset 10 times larger. This allows us to better showcase the performance differences between algorithms.
+
+In practice, you wouldn't artificially inflate your dataset—this is purely for demonstration purposes to show how algorithms perform at scale.
+
+## Feature Scaling and Preparation
+
+
+```python
+big_df.iloc[:, 1:30] = StandardScaler().fit_transform(big_df.iloc[:, 1:30])
+```
+
+
+I standardized features to have mean=0 and standard deviation=1. Using `iloc[:, 1:30]` selects all rows and columns 1 through 29 (the feature columns, excluding Time and Class).
+
+After scaling, I converted the data to a NumPy array:
+
+
+```python
+df_matrix = big_df.values
+X = df_matrix[:, 1:30]  # Features
+y = df_matrix[:, 30]     # Target (Class)
+```
+
+
+This separation of features (X) and target (y) is standard practice in machine learning.
+
+## Train/Test Split with Stratification
+
+
+```python
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y)
+```
+
+
+The `stratify=y` parameter is crucial for imbalanced datasets. It ensures that both training and test sets maintain the same proportion of fraudulent vs. legitimate transactions as the original dataset. Without stratification, random splitting might accidentally put most fraud cases in one set, making fair evaluation impossible.
+
+## Addressing Class Imbalance
+
+
+```python
+weighted_y_train = compute_sample_weight('balanced', y_train)
+```
+
+
+This is one of the most important steps! The `compute_sample_weight()` function calculates weights that compensate for class imbalance. It assigns higher weights to minority class samples (fraud) and lower weights to majority class samples (legitimate).
+
+Think of it like this: Since we have so few fraud examples, we tell the model "pay extra attention to these rare cases." Without this, the model would overwhelm fraud patterns with the massive number of legitimate transaction patterns.
+
+## Decision Tree Classifier
+
+
+```python
+from sklearn.tree import DecisionTreeClassifier
+sklearn_dt = DecisionTreeClassifier(max_depth=4, random_state=4)
+
+t0 = time.time()
+sklearn_dt.fit(X_train, y_train, sample_weight=weighted_y_train)
+sklearn_time = time.time() - t0
+print(f'Sklearn training time is: {sklearn_time:.3f}')
+```
+
+
+### Why max_depth=4?
+
+Limiting tree depth to 4 prevents overfitting. In fraud detection, we want the model to learn general patterns of fraud, not memorize specific training examples. A shallow tree forces the algorithm to identify the most important fraud indicators rather than creating overly complex rules.
+
+### Measuring Training Time
+
+I measured the training time using:
+
+
+```python
+t0 = time.time()
+# ... training code ...
+sklearn_time = time.time() - t0
+```
+
+
+Training time: **19.388 seconds**
+
+For production fraud detection systems processing millions of transactions, training efficiency matters. This timing helps us understand the computational cost of our modeling choices.
+
+## Model Evaluation: ROC-AUC Score
+
+
+```python
+sklearn_pred = sklearn_dt.predict_proba(X_test)[:,1]
+sklearn_roc_auc = roc_auc_score(y_test, sklearn_pred)
+print('[Scikit-Learn] ROC-AUC score : {0:.3f}'.format(sklearn_roc_auc))
+```
+
+
+### Understanding ROC-AUC
+
+**ROC-AUC: 0.973**
+
+ROC-AUC (Area Under the Receiver Operating Characteristic Curve) is perfect for imbalanced classification. Here's why:
+
+Unlike simple accuracy, which can be misleading with imbalanced data (predicting "all legitimate" gives 99.8% accuracy!), ROC-AUC measures the model's ability to distinguish between classes across all possible classification thresholds.
+
+- **ROC-AUC = 1.0**: Perfect classifier (separates classes completely)
+- **ROC-AUC = 0.5**: Random guessing (no better than coin flip)
+- **ROC-AUC = 0.973**: Excellent performance—the model ranks fraudulent transactions much higher than legitimate ones
+
+I used `predict_proba(X_test)[:,1]` to get the probability of fraud (class 1) rather than hard predictions. ROC-AUC evaluates these probabilities, which is more informative than binary predictions.
+
+## Support Vector Machine (SVM) for Classification
+
+### Reducing Dataset Size for SVM
+
+
+```python
+X_low_train = X_train[:500,000]
+y_low_train = y_train[:500,000]
+```
+
+
+SVMs are computationally expensive on large datasets. I sliced the training data to 500,000 samples to demonstrate SVM while keeping training time reasonable. In production with massive datasets, you'd either use the full data with more computational resources or consider more scalable algorithms.
+
+### Building the SVM Model
+
+
+```python
+from sklearn.svm import LinearSVC
+
+sklearnSVM = LinearSVC(class_weight='balanced', random_state=4, fit_intercept=False, loss='hinge')
+sklearnSVM.fit(X_low_train, y_low_train)
+```
+
+
+Let me explain these parameters:
+
+**class_weight='balanced'**: This automatically adjusts weights inversely proportional to class frequencies. It's similar to `compute_sample_weight()` we used earlier but built into the SVM. This ensures the model doesn't ignore the minority fraud class.
+
+**fit_intercept=False**: Since we already standardized our data to have mean=0, we don't need the model to learn an intercept term. The decision boundary can pass through the origin. This simplifies the model and speeds up training.
+
+**loss='hinge'**: This is the traditional SVM loss function. It's faster than the default `squared_hinge` but not smooth (not differentiable everywhere). The hinge loss penalizes points on the wrong side of the decision boundary or too close to it.
+
+Think of hinge loss as creating a "margin" around the decision boundary—we want fraud and legitimate transactions not just separated, but separated with a comfortable buffer zone.
+
+### SVM Training Time
+
+**Training time: 123.582 seconds**
+
+SVM took much longer than Decision Trees (19.4 seconds), which is expected. SVMs are powerful but computationally intensive. The trade-off is that SVMs can capture complex decision boundaries through the kernel trick.
+
+### Convergence Warning
+
+You might notice: "Liblinear failed to converge, increase the number of iterations."
+
+This warning indicates the optimization algorithm didn't fully converge within the default iteration limit. In practice, you could:
+
+- Increase `max_iter` parameter
+- Further tune the regularization parameter
+- Check if the model's current performance is acceptable despite not converging
+
+## SVM Evaluation
+
+
+```python
+sklearn_pred = sklearnSVM.decision_function(X_test)
+acc_sklearn = roc_auc_score(y_test, sklearn_pred)
+print("[Scikit-Learn] ROC-AUC score: {0:.3f}".format(acc_sklearn))
+```
+
+
+**ROC-AUC: 0.971**
+
+The SVM achieves slightly lower ROC-AUC (0.971 vs 0.973) than the Decision Tree while taking much longer to train. This suggests that for this particular dataset, the simpler Decision Tree is actually preferable—better performance with faster training.
+
+### Hinge Loss Metric
+
+
+```python
+from sklearn.metrics import hinge_loss
+loss_sklearn = hinge_loss(y_test, sklearn_pred)
+print("[Scikit-Learn] Hinge loss: {0:.3f}".format(loss_sklearn))
+```
+
+
+**Hinge Loss: 0.254**
+
+Hinge loss measures how far predictions are from the correct side of the decision boundary. Lower is better. This metric is particularly relevant for SVMs since they're trained to minimize hinge loss.
+
+## Key Takeaways
+
+1. **Class Imbalance Requires Special Handling**: With 99.8% vs 0.2% split, simply using `class_weight='balanced'` or `compute_sample_weight()` dramatically improves model performance by preventing the majority class from dominating.
+
+2. **ROC-AUC is Superior to Accuracy for Imbalanced Data**: Accuracy is misleading when classes are imbalanced. ROC-AUC properly evaluates the model's ability to distinguish between classes.
+
+3. **Algorithm Selection Matters**: Decision Trees trained faster and performed better than SVM for this dataset. Always compare multiple algorithms—complexity doesn't guarantee better results.
+
+4. **Standardization Enables Efficiency**: By standardizing features, we could set `fit_intercept=False`, simplifying the SVM and speeding up training.
+
+5. **Stratified Splitting Preserves Distribution**: Using `stratify=y` ensures both training and test sets represent the true distribution of fraud vs. legitimate transactions.
+
+6. **Sample Weighting is Powerful**: Both `sample_weight` in Decision Trees and `class_weight='balanced'` in SVM tell the model to pay proportionally more attention to rare fraud cases.
+
+## Practical Applications and Considerations
+
+### Real-World Fraud Detection
+
+In production systems:
+
+- **Real-time Scoring**: Models must classify transactions in milliseconds
+- **Threshold Tuning**: Adjust the probability threshold based on business costs (false positives vs. false negatives)
+- **Feature Engineering**: Create features like "transaction amount deviation from user average" or "transaction location anomalies"
+- **Ensemble Methods**: Combine multiple models for more robust predictions
+- **Continuous Monitoring**: Fraud patterns evolve, requiring regular model updates
+
+### Cost-Sensitive Learning
+
+Different errors have different costs:
+
+- **False Negative (missing fraud)**: Direct financial loss
+- **False Positive (blocking legitimate transaction)**: Customer frustration, potential customer loss
+
+You might adjust decision thresholds to prioritize avoiding one type of error based on business priorities.
+
+### Model Interpretability
+
+In fraud detection, understanding _why_ a transaction was flagged is crucial for:
+
+- Manual review by fraud analysts
+- Explaining decisions to customers
+- Identifying new fraud patterns
+- Meeting regulatory requirements
+
+Decision Trees excel here—you can trace the exact path that led to a fraud prediction.
+
+## Conclusion
+
+Fraud detection demonstrates several advanced machine learning concepts: handling extreme class imbalance, choosing appropriate evaluation metrics, and balancing model complexity with training efficiency.
+
+Our Decision Tree achieved 0.973 ROC-AUC, successfully distinguishing fraudulent from legitimate transactions despite the severe class imbalance. By using sample weighting, stratified splitting, and ROC-AUC evaluation, we built a model that focuses on the minority fraud class without being overwhelmed by legitimate transactions.
+
+The key lessons—addressing class imbalance, using appropriate metrics, and comparing multiple algorithms—apply broadly to many real-world machine learning problems where one class is rare but critically important to identify.
