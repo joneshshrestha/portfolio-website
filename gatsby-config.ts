@@ -1,4 +1,6 @@
 import type { GatsbyConfig } from 'gatsby';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 const config: GatsbyConfig = {
   pathPrefix: `/portfolio-website-gh-pages`,
@@ -17,6 +19,8 @@ const config: GatsbyConfig = {
       resolve: 'gatsby-plugin-mdx',
       options: {
         extensions: [`.mdx`, `.md`],
+        remarkPlugins: [remarkMath],
+        rehypePlugins: [rehypeKatex],
       },
     },
     'gatsby-plugin-sharp',

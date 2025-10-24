@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'gatsby';
 import { useTheme } from '../context/ThemeContext';
 import { SunIcon, MoonIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import 'katex/dist/katex.min.css';
 
 interface LayoutProps {
   children: React.ReactNode;
