@@ -17,7 +17,6 @@
     "deploy": "gatsby build && gh-pages -d public -b gh-pages"
   },
   "dependencies": {
-    "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
     "@mdx-js/mdx": "^1.6.22",
     "@mdx-js/react": "^1.6.22",
@@ -25,7 +24,6 @@
     "gatsby-plugin-feed": "^5.15.0",
     "gatsby-plugin-google-gtag": "^5.15.0",
     "gatsby-plugin-image": "^3.14.0",
-    "gatsby-plugin-manifest": "^5.14.0",
     "gatsby-plugin-mdx": "^3.20.0",
     "gatsby-plugin-postcss": "^6.14.0",
     "gatsby-plugin-sharp": "^5.14.0",
@@ -41,7 +39,6 @@
     "react-dom": "^18.2.0",
     "rehype-katex": "^4.0.0",
     "rehype-prism-plus": "^2.0.1",
-    "remark-gfm": "^4.0.1",
     "remark-math": "^3.0.1"
   },
   "devDependencies": {

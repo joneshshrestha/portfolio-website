@@ -75,7 +75,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </Link>
               <span className="border-l border-gray-300 dark:border-gray-700 h-5 self-center mx-2"></span>
               <a
-                href="/Resume.pdf"
+                href="/Jonesh_Shrestha_ML_Resume.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-primary-light dark:hover:text-primary-dark transition-colors"
@@ -144,7 +144,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </Link>
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <a
-                  href="/Resume.pdf"
+                  href="/Jonesh_Shrestha_ML_Resume.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary-light dark:text-primary-dark hover:underline"
