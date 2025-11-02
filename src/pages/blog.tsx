@@ -34,8 +34,10 @@ const cleanExcerpt = (excerpt: string): string => {
 };
 
 // Helper function to categorize blogs based on keywords
-const getBlogCategory = (title: string, excerpt: string): string => {
+// Returns multiple categories when applicable
+const getBlogCategories = (title: string, excerpt: string): string[] => {
   const text = (title + ' ' + excerpt).toLowerCase();
+  const categories: string[] = [];
 
   if (
     text.includes('reinforcement') ||
@@ -43,7 +45,7 @@ const getBlogCategory = (title: string, excerpt: string): string => {
     text.includes('frozenlake') ||
     text.includes('value iteration')
   ) {
-    return 'Reinforcement Learning';
+    categories.push('Reinforcement Learning');
   }
   if (
     text.includes('deep learning') ||
@@ -51,7 +53,7 @@ const getBlogCategory = (title: string, excerpt: string): string => {
     text.includes('neural network') ||
     text.includes('evolution')
   ) {
-    return 'Deep Learning';
+    categories.push('Deep Learning');
   }
   if (
     text.includes('clustering') ||
@@ -59,23 +61,20 @@ const getBlogCategory = (title: string, excerpt: string): string => {
     text.includes('dbscan') ||
     text.includes('hdbscan')
   ) {
-    return 'Clustering';
+    categories.push('Clustering');
   }
   if (
     text.includes('classification') ||
     text.includes('svm') ||
     text.includes('decision tree') ||
     text.includes('random forest') ||
-    text.includes('logistic')
-  ) {
-    return 'Classification';
-  }
-  if (
-    text.includes('regression') ||
-    text.includes('linear regression') ||
+    text.includes('logistic') ||
     text.includes('softmax')
   ) {
-    return 'Regression';
+    categories.push('Classification');
+  }
+  if (text.includes('regression') && !text.includes('logistic') && !text.includes('softmax')) {
+    categories.push('Regression');
   }
   if (
     text.includes('dimensionality') ||
@@ -83,45 +82,80 @@ const getBlogCategory = (title: string, excerpt: string): string => {
     text.includes('tsne') ||
     text.includes('umap')
   ) {
-    return 'Dimensionality Reduction';
+    categories.push('Dimensionality Reduction');
   }
-  if (text.includes('pipeline') || text.includes('gridsearch') || text.includes('hyperparameter')) {
-    return 'ML Engineering';
+  if (
+    text.includes('pipeline') ||
+    text.includes('gridsearch') ||
+    text.includes('hyperparameter') ||
+    text.includes('optimization') ||
+    text.includes('evaluation')
+  ) {
+    categories.push('ML Engineering');
   }
-  if (text.includes('eda') || text.includes('exploratory') || text.includes('preprocessing')) {
-    return 'Data Science';
+  if (
+    text.includes('eda') ||
+    text.includes('exploratory') ||
+    text.includes('preprocessing') ||
+    text.includes('imbalanced')
+  ) {
+    categories.push('Data Science');
   }
-  if (text.includes('route') || text.includes('search') || text.includes('algorithm')) {
-    return 'Algorithms';
+  if (
+    text.includes('route') ||
+    text.includes('search algorithm') ||
+    text.includes('knn') ||
+    text.includes('rocchio') ||
+    text.includes('algorithm')
+  ) {
+    categories.push('Algorithms');
   }
   if (text.includes('fly.io') || text.includes('lightning') || text.includes('hosting')) {
-    return 'DevOps';
+    categories.push('DevOps');
+  }
+  if (
+    text.includes('mapreduce') ||
+    text.includes('distributed') ||
+    text.includes('hadoop') ||
+    text.includes('hdfs')
+  ) {
+    categories.push('Distributed Systems');
+  }
+  if (
+    text.includes('hbase') ||
+    text.includes('nosql') ||
+    text.includes('database') ||
+    text.includes('big data')
+  ) {
+    categories.push('Data Engineering');
   }
 
-  return 'Machine Learning';
+  return categories.length > 0 ? categories : ['Machine Learning'];
 };
 
 const BlogPage: React.FC<PageProps<BlogPageData>> = ({ data }) => {
   const posts = data.allMdx.nodes;
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
-  // Categorize all posts
+  // Categorize all posts (multiple categories)
   const postsWithCategories = posts.map(post => ({
     ...post,
-    category: getBlogCategory(post.frontmatter.title, post.excerpt),
+    categories: getBlogCategories(post.frontmatter.title, post.excerpt),
   }));
 
   // Get unique categories
-  const categories = [
-    'All',
-    ...Array.from(new Set(postsWithCategories.map(post => post.category))),
-  ];
+  // Collect unique categories across all posts
+  const categorySet = new Set<string>();
+  postsWithCategories.forEach(post => {
+    post.categories.forEach(cat => categorySet.add(cat));
+  });
+  const categories = ['All', ...Array.from(categorySet).sort()];
 
   // Filter posts by category
   const filteredPosts =
     selectedCategory === 'All'
       ? postsWithCategories
-      : postsWithCategories.filter(post => post.category === selectedCategory);
+      : postsWithCategories.filter(post => post.categories.includes(selectedCategory));
 
   return (
     <Layout>
@@ -183,10 +217,17 @@ const BlogPage: React.FC<PageProps<BlogPageData>> = ({ data }) => {
               >
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                   <div className="flex-1">
-                    {/* Category Badge */}
-                    <span className="inline-block px-3 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full mb-3">
-                      {post.category}
-                    </span>
+                    {/* Category Badges */}
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {post.categories.map((cat: string, idx: number) => (
+                        <span
+                          key={`${post.id}-cat-${idx}`}
+                          className="inline-block px-3 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full"
+                        >
+                          {cat}
+                        </span>
+                      ))}
+                    </div>
 
                     <Link
                       to={post.fields.slug}

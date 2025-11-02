@@ -1,0 +1,509 @@
+---
+title: 'Predicting Community Crime Rates with Multiple Linear Regression'
+date: '2025-11-01'
+author: 'Jonesh Shrestha'
+---
+
+<div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg">
+
+## TL;DR
+
+Built comprehensive regression pipeline predicting violent crime rates across 1,994 US communities using 97 socioeconomic features (census + FBI data). **Lasso achieved best test RMSE of 0.1436**, outperforming Ridge (0.1440), SGD (0.1456), and feature selection approaches. Automated feature selection identified 93 of 97 features as informative. Demonstrated systematic hyperparameter tuning via K-fold cross-validation, bias-variance tradeoff visualization across alpha values, and comparison of L1/L2/Elastic Net regularization techniques. Key insight: L1's implicit feature selection proved most effective for this high-dimensional socioeconomic dataset.
+
+</div>
+
+## Introduction
+
+Can we predict crime rates from socioeconomic factors? This question has huge implications for urban planning and resource allocation. I tackled this using the Communities and Crime dataset, which combines 1990 US Census data with 1995 FBI crime statistics across 1,994 communities.
+
+The challenge was to predict `ViolentCrimesPerPop` (normalized 0-1) using 97 features spanning demographics, income, education, employment, family structure, housing, and geography. What made this project interesting was comparing multiple regression approaches from baseline linear regression to sophisticated regularization techniques to find the optimal balance between prediction accuracy and generalization.
+
+## Loading and Preprocessing the Data
+
+```python
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+
+communities_df = pd.read_csv("communities/communities.csv")
+```
+
+First thing I discovered: the dataset has two identifier columns (`state` and `communityname`) that need to be dropped for regression.
+
+```python
+comm_clean_df = communities_df.drop(columns=["state", "communityname"])
+```
+
+### Handling Missing Values
+
+Here's where things got interesting. When I checked for missing values:
+
+```python
+comm_clean_df.isna().sum()[comm_clean_df.isna().sum() > 0]
+```
+
+Nothing showed up! But when I examined data types, I found `OtherPerCap` was stored as object type while all other columns were float. This was a clue.
+
+```python
+comm_clean_df["OtherPerCap"].unique()
+# Output shows '?' characters!
+```
+
+The dataset used '?' to represent missing values. I converted these to proper NaN values and imputed using the column mean:
+
+```python
+comm_clean_df = comm_clean_df.replace("?", np.nan)
+comm_clean_df["OtherPerCap"] = comm_clean_df["OtherPerCap"].astype("float64")
+comm_clean_df["OtherPerCap"] = comm_clean_df["OtherPerCap"].fillna(
+    comm_clean_df["OtherPerCap"].mean()
+)
+```
+
+This preserved 1,993 out of 1,994 records. Always check data types, not just `isna()`!
+
+### Train-Test Split
+
+```python
+# Separate target variable
+comm_target_df = comm_clean_df[["ViolentCrimesPerPop"]]
+comm_clean_df.drop(columns=["ViolentCrimesPerPop"], inplace=True)
+
+# 80-20 split with random_state for reproducibility
+X_train, X_test, y_train, y_test = train_test_split(
+    comm_clean_df, comm_target_df, test_size=0.2, random_state=33
+)
+
+# Convert to 1D arrays as expected by sklearn
+y_train = y_train.to_numpy().ravel()
+y_test = y_test.to_numpy().ravel()
+
+print(f"X_train shape: {X_train.shape}")  # (1595, 97)
+print(f"X_test shape: {X_test.shape}")    # (399, 97)
+```
+
+I used `.ravel()` to flatten the target arrays into 1D sklearn models expect this format.
+
+## Baseline: Standard Multiple Linear Regression
+
+Before getting fancy with regularization, I built a baseline to understand the data.
+
+### Creating a Reusable Performance Function
+
+```python
+from sklearn.metrics import root_mean_squared_error
+
+def measure_performance(X, y, model, metric=root_mean_squared_error):
+    y_pred = model.predict(X)
+    score = metric(y, y_pred)
+    return score
+```
+
+This function makes it easy to evaluate any model consistently using RMSE.
+
+### Training and Evaluating
+
+```python
+from sklearn.linear_model import LinearRegression
+
+linreg = LinearRegression()
+linreg.fit(X_train, y_train)
+
+train_rmse = measure_performance(X_train, y_train, linreg)
+print(f"Training RMSE: {train_rmse:.4f}")  # 0.1262
+```
+
+### Visualizing Predictions
+
+```python
+y_pred_train = linreg.predict(X_train)
+
+plt.scatter(y_train, y_pred_train, c="r", alpha=0.5)
+plt.plot([y_train.min(), y_train.max()], [y_train.min(), y_train.max()], "g-")
+plt.xlabel("Actual Values")
+plt.ylabel("Predicted Values")
+plt.title("Actual vs Predicted Crime Rates")
+plt.show()
+```
+
+The scatter plot shows strong correlation but with variance at higher crime rates suggesting the model struggles with extreme values.
+
+### Examining Coefficients
+
+```python
+categories = comm_clean_df.columns.to_numpy()
+weights = linreg.coef_.flatten()
+
+plt.figure(figsize=(10, 18))
+plt.barh(categories, weights)
+plt.xlabel("Coefficient Values")
+plt.ylabel("Features")
+plt.tight_layout()
+```
+
+The coefficient plot reveals which socioeconomic factors have the strongest influence on crime predictions. Large positive coefficients indicate features that increase predicted crime rates, while large negative coefficients indicate protective factors.
+
+### Cross-Validation
+
+```python
+from sklearn.model_selection import KFold
+
+kf = KFold(n_splits=10)
+total_rmse = []
+
+for train_idx, test_idx in kf.split(X_train):
+    linreg.fit(X_train.iloc[train_idx], y_train[train_idx])
+    fold_rmse = measure_performance(
+        X_train.iloc[test_idx], y_train[test_idx], linreg
+    )
+    total_rmse.append(fold_rmse)
+
+print(f"10-fold CV RMSE: {np.mean(total_rmse):.4f}")  # 0.1343
+print(f"Training RMSE: {train_rmse:.4f}")             # 0.1262
+```
+
+The CV RMSE (0.1343) being slightly higher than training RMSE (0.1262) is expected. The small gap suggests the model generalizes reasonably well without severe overfitting.
+
+## Automated Feature Selection
+
+With 97 features, some might be redundant or noisy. I implemented systematic feature selection using `SelectPercentile`.
+
+```python
+from sklearn.feature_selection import SelectPercentile, f_regression
+from sklearn.model_selection import cross_val_score
+
+percentiles = range(1, 100, 5)
+
+def best_features(train, target, reg_model):
+    results = []
+    for percentile in percentiles:
+        fs = SelectPercentile(f_regression, percentile=percentile)
+        X_train_fs = fs.fit_transform(train, target)
+
+        scores = cross_val_score(
+            reg_model, X_train_fs, target, cv=5,
+            scoring="neg_root_mean_squared_error"
+        )
+        fs_rmse = abs(scores.mean())
+        results.append(fs_rmse)
+
+    return results
+```
+
+This function tests percentiles from 1% to 96% in 5% increments, performing 5-fold CV for each. The `scoring='neg_root_mean_squared_error'` returns negative values (sklearn convention), so I take the absolute value.
+
+```python
+results = best_features(X_train, y_train, linreg)
+
+plt.plot(list(percentiles), results)
+plt.xlabel("Percentage of features selected")
+plt.ylabel("Cross validation RMSE")
+plt.show()
+```
+
+### Finding the Optimal Subset
+
+```python
+optimal_percentile_ind = np.where(results == np.min(results))[0][0]
+optimal_percentile = percentiles[optimal_percentile_ind]
+
+print(f"Optimal percentile: {optimal_percentile}")  # 96%
+print(f"Best CV RMSE: {min(results):.4f}")          # 0.1344
+
+optimal_num_features = int(optimal_percentile * len(X_train.columns) / 100)
+print(f"Optimal number of features: {optimal_num_features}")  # 93
+```
+
+Interestingly, 96% of features (93 out of 97) were retained! This suggests most variables contain useful predictive information.
+
+### Applying Feature Selection
+
+```python
+fs_best = SelectPercentile(f_regression, percentile=optimal_percentile)
+X_train_fs = fs_best.fit_transform(X_train, y_train)
+X_test_fs = fs_best.transform(X_test)
+
+# Get selected feature names
+best_features = X_train.columns[fs_best.get_support()].values
+print(f"Selected features: {best_features}")
+
+# Train and evaluate
+fs_linreg = LinearRegression()
+fs_linreg.fit(X_train_fs, y_train)
+fs_rmse = measure_performance(X_test_fs, y_test, fs_linreg)
+print(f"Test RMSE with feature selection: {fs_rmse:.4f}")  # 0.1438
+```
+
+**Important note**: This implementation has slight data leakage since `SelectPercentile` is fit on the entire training set before cross-validation splits it. A more rigorous approach would use `Pipeline` to re-fit the feature selector inside each fold. For production systems, always use pipelines!
+
+## Ridge Regression: L2 Regularization
+
+Ridge regression adds an L2 penalty to prevent overfitting by shrinking coefficient magnitudes.
+
+### Systematic Hyperparameter Tuning
+
+I created a reusable function for hyperparameter optimization:
+
+```python
+def calc_params(X, y, clf, param_values, param_name, K):
+    X = np.array(X)
+    y = np.array(y)
+
+    train_scores = np.zeros(len(param_values))
+    test_scores = np.zeros(len(param_values))
+
+    for i, param_value in enumerate(param_values):
+        clf.set_params(**{param_name: param_value})
+
+        k_train_scores = np.zeros(K)
+        k_test_scores = np.zeros(K)
+
+        cv = KFold(n_splits=K, shuffle=True, random_state=0)
+
+        j = 0
+        for train, test in cv.split(X):
+            clf.fit(X[train], y[train])
+            k_train_scores[j] = measure_performance(X[train], y[train], clf)
+            k_test_scores[j] = measure_performance(X[test], y[test], clf)
+            j += 1
+
+        train_scores[i] = np.mean(k_train_scores)
+        test_scores[i] = np.mean(k_test_scores)
+
+    # Plot results
+    plt.plot(param_values, train_scores, label="Train", alpha=0.8, lw=2, c="b")
+    plt.plot(param_values, test_scores, label="X-Val", alpha=0.8, lw=2, c="g")
+    plt.legend()
+    plt.xlabel(f"{param_name} values")
+    plt.ylabel("RMSE")
+
+    return train_scores, test_scores
+```
+
+This function is flexible it works for any parameter, any model, and any K value.
+
+### Finding Optimal Alpha
+
+```python
+from sklearn.linear_model import Ridge
+
+ridge_range = np.linspace(0.001, 10, 20)
+ridge_reg = Ridge()
+
+ridge_train_scores, ridge_test_scores = calc_params(
+    X_train, y_train, ridge_reg, ridge_range, "alpha", 5
+)
+
+# Find best alpha
+ridge_best_alpha_idx = np.argmin(ridge_test_scores)
+ridge_best_alpha = ridge_range[ridge_best_alpha_idx]
+
+print(f"Best alpha: {ridge_best_alpha:.4f}")                          # 2.6323
+print(f"CV RMSE: {ridge_test_scores[ridge_best_alpha_idx]:.4f}")     # 0.1343
+```
+
+### Evaluating on Test Set
+
+```python
+best_ridge = Ridge(alpha=ridge_best_alpha)
+best_ridge.fit(X_train, y_train)
+ridge_test_rmse = measure_performance(X_test, y_test, best_ridge)
+
+print(f"Test RMSE: {ridge_test_rmse:.4f}")  # 0.1440
+```
+
+### Understanding the Bias-Variance Tradeoff
+
+The plot from `calc_params` clearly shows:
+
+- **Low α (weak regularization)**: Low training RMSE, higher CV RMSE → overfitting (high variance)
+- **Optimal α**: Minimal gap between training and CV RMSE → best generalization
+- **High α (strong regularization)**: Both errors increase → underfitting (high bias)
+
+This is the bias-variance tradeoff in action!
+
+## Lasso Regression: L1 Regularization
+
+Lasso uses L1 penalty, which not only shrinks coefficients but can zero them out completely performing implicit feature selection.
+
+```python
+from sklearn.linear_model import Lasso
+
+lasso_range = np.linspace(0.0001, 0.01, 20)
+lasso_reg = Lasso()
+
+lasso_train_scores, lasso_test_scores = calc_params(
+    X_train, y_train, lasso_reg, lasso_range, "alpha", 5
+)
+
+# Find best alpha
+lasso_best_alpha_idx = np.argmin(lasso_test_scores)
+lasso_best_alpha = lasso_range[lasso_best_alpha_idx]
+
+print(f"Best alpha: {lasso_best_alpha:.4f}")                         # 0.0001
+print(f"CV RMSE: {lasso_test_scores[lasso_best_alpha_idx]:.4f}")    # 0.1347
+
+# Test evaluation
+best_lasso = Lasso(alpha=lasso_best_alpha)
+best_lasso.fit(X_train, y_train)
+lasso_test_rmse = measure_performance(X_test, y_test, best_lasso)
+
+print(f"Test RMSE: {lasso_test_rmse:.4f}")  # 0.1436 ← Best!
+```
+
+Lasso achieved the best test performance! The very small optimal alpha (0.0001) suggests the dataset benefits from keeping most features with minimal shrinkage, but L1's ability to zero out the least informative coefficients gives it an edge over Ridge.
+
+## Stochastic Gradient Descent with Elastic Net
+
+SGDRegressor is useful for large datasets but requires feature standardization.
+
+### Feature Scaling
+
+```python
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+```
+
+**Critical**: Fit the scaler on training data only, then transform both train and test. Never fit on test data!
+
+### Grid Search
+
+```python
+from sklearn.linear_model import SGDRegressor
+from sklearn.model_selection import GridSearchCV
+
+sgd_reg = SGDRegressor()
+parameters = {
+    "penalty": ["l1", "l2"],
+    "alpha": np.linspace(0.0001, 10, 20)
+}
+
+grid_search = GridSearchCV(sgd_reg, parameters, cv=5, verbose=1)
+grid_search.fit(X_train_scaled, y_train)
+
+print(f"Best alpha: {grid_search.best_params_['alpha']}")      # 0.0001
+print(f"Best penalty: {grid_search.best_params_['penalty']}")  # l1
+```
+
+Grid search tested 40 parameter combinations (2 penalties × 20 alphas) with 5-fold CV = 200 model fits!
+
+```python
+best_sgd = SGDRegressor(
+    alpha=grid_search.best_params_["alpha"],
+    penalty=grid_search.best_params_["penalty"]
+)
+best_sgd.fit(X_train_scaled, y_train)
+
+sgd_train_rmse = measure_performance(X_train_scaled, y_train, best_sgd)
+sgd_test_rmse = measure_performance(X_test_scaled, y_test, best_sgd)
+
+print(f"Train RMSE: {sgd_train_rmse:.4f}")  # 0.1301
+print(f"Test RMSE: {sgd_test_rmse:.4f}")    # 0.1456
+```
+
+### Elastic Net Optimization
+
+Elastic Net mixes L1 and L2 regularization using the `l1_ratio` parameter (0 = pure L2, 1 = pure L1).
+
+```python
+l1_ratio_range = np.linspace(0, 1, 21)
+elasticnet_sgd = SGDRegressor(penalty="elasticnet")
+
+sgd_train_scores, sgd_test_scores = calc_params(
+    X_train_scaled, y_train, elasticnet_sgd, l1_ratio_range, "l1_ratio", 5
+)
+
+# Find best l1_ratio
+best_l1ratio_idx = np.argmin(sgd_test_scores)
+best_l1ratio = l1_ratio_range[best_l1ratio_idx]
+
+print(f"Best l1_ratio: {best_l1ratio:.4f}")                     # 0.25
+print(f"CV RMSE: {sgd_test_scores[best_l1ratio_idx]:.4f}")      # 0.1360
+
+# Test evaluation
+best_elasticnet = SGDRegressor(penalty="elasticnet", l1_ratio=best_l1ratio)
+best_elasticnet.fit(X_train_scaled, y_train)
+
+elasticnet_train_rmse = measure_performance(X_train_scaled, y_train, best_elasticnet)
+elasticnet_test_rmse = measure_performance(X_test_scaled, y_test, best_elasticnet)
+
+print(f"Train RMSE: {elasticnet_train_rmse:.4f}")  # 0.1314
+print(f"Test RMSE: {elasticnet_test_rmse:.4f}")    # 0.1471
+```
+
+The optimal mixing ratio of 0.25 (25% L1, 75% L2) combines L1's sparsity with L2's shrinkage, but interestingly, it performed worse than pure L1. For this dataset, either pure L1 or pure L2 is more effective than a hybrid.
+
+## Model Comparison and Key Insights
+
+Here's how all approaches stacked up:
+
+| Model                           | Test RMSE  | Rank |
+| ------------------------------- | ---------- | ---- |
+| **Lasso (α=0.0001)**            | **0.1436** | 🥇   |
+| Feature Selection (96%)         | 0.1438     | 🥈   |
+| Ridge (α=2.6323)                | 0.1440     | 🥉   |
+| SGD L1 (α=0.0001)               | 0.1456     | 4th  |
+| SGD Elastic Net (l1_ratio=0.25) | 0.1471     | 5th  |
+
+### What I Learned
+
+1. **Lasso wins for high-dimensional data**: L1's implicit feature selection gave it an edge by zeroing out the least informative coefficients.
+
+2. **Regularization is crucial**: All regularized models performed similarly (within 0.004 RMSE), but all significantly better than unregularized approaches would on new data.
+
+3. **Feature selection provides marginal gains**: Automated selection (93/97 features) helped slightly, but regularization alone achieved comparable results. This suggests most features contain useful signal.
+
+4. **SGD introduces variance**: Due to stochastic optimization, SGD performed slightly worse but is much more scalable for massive datasets.
+
+5. **Pure penalties beat hybrid**: Elastic Net didn't outperform pure L1 or L2, indicating this dataset responds better to one extreme than a middle ground.
+
+6. **Always standardize for SGD**: SGDRegressor converges poorly without feature scaling. Ridge/Lasso handle different scales better but still benefit from standardization.
+
+## Practical Takeaways
+
+**When choosing a regression approach**:
+
+- Start with **Lasso** for high-dimensional data it's fast and performs automatic feature selection
+- Use **Ridge** when you believe all features contribute but need shrinkage
+- Try **Elastic Net** when features are highly correlated (not the case here)
+- Use **SGDRegressor** only for datasets too large for memory (millions of samples)
+
+**For hyperparameter tuning**:
+
+- Always use cross-validation, never optimize on test data
+- Plot training vs. CV error to visualize bias-variance tradeoff
+- Use logarithmic spacing for alpha values (they span orders of magnitude)
+- Grid search is expensive consider random search for large parameter spaces
+
+**Data preprocessing matters**:
+
+- Check data types, not just `.isna()` missing values might be encoded as strings
+- Impute missing values using training statistics only
+- Standardize features for gradient-based optimizers
+- Use pipelines to prevent data leakage
+
+## Conclusion
+
+This project demonstrated that violent crime rates can be predicted with reasonable accuracy (RMSE ~0.14) from socioeconomic features. Lasso regression emerged as the winner by leveraging L1 regularization's implicit feature selection.
+
+The real insight came from comparing multiple approaches systematically. Each technique revealed something about the data structure feature selection showed that 93 of 97 features are informative, Ridge highlighted the importance of coefficient shrinkage, and Lasso proved that sparse solutions can outperform dense ones.
+
+Understanding these techniques deeply not just using them as black boxes enables making informed modeling decisions. When you see the bias-variance tradeoff visualized, when you understand why cosine similarity works better than Euclidean distance for text, when you know why SGD needs standardization you become a better machine learning practitioner.
+
+The ability to predict crime rates from socioeconomic factors has real-world implications. Communities can identify risk factors, allocate prevention resources effectively, and make data-driven policy decisions. That's the power of applied machine learning.
+
+---
+
+## 📓 Jupyter Notebook
+
+Want to explore the complete code and run it yourself? Access the full Jupyter notebook with detailed implementations and visualizations:
+
+**[→ View Notebook on GitHub](https://github.com/joneshshrestha/machine-learning-python/blob/main/Regression%20Analysis/regression-analysis.ipynb)**
+
+You can also run it interactively:
+
+- [Open in Google Colab](https://colab.research.google.com/github/joneshshrestha/machine-learning-python/blob/main/Regression%20Analysis/regression-analysis.ipynb)
+- [Open in Binder](https://mybinder.org/v2/gh/joneshshrestha/machine-learning-python/main?filepath=Regression%20Analysis/regression-analysis.ipynb)

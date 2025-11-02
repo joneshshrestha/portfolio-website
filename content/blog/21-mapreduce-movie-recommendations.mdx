@@ -4,9 +4,15 @@ date: '2025-10-22'
 author: 'Jonesh Shrestha'
 ---
 
-## Overview
+<div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg">
 
-Built a distributed movie recommendation engine using MapReduce (mrjob 0.6.12) on AWS EMR, processing 1 million ratings from the MovieLens dataset. Computed cosine similarity scores between movie pairs across variable-sized clusters (4 and 8 nodes). The 8-node cluster achieved 18 minutes 2 seconds wall time vs 31 minutes 8 seconds on 4 nodes, demonstrating 1.79x speedup. Analysis reveals consistent ~1.5 minute job submission overhead and sub-linear scaling due to communication costs and load imbalances inherent in distributed computing.
+## TL;DR
+
+Built a distributed movie recommendation engine using MapReduce (mrjob 0.6.12) on AWS EMR, processing 1 million ratings from the MovieLens dataset. Computed cosine similarity scores between movie pairs across variable-sized clusters (4 and 8 nodes). The 8-node cluster achieved **18 minutes 2 seconds** wall time vs 31 minutes 8 seconds on 4 nodes, demonstrating 1.79x speedup. Analysis reveals consistent ~1.5 minute job submission overhead and sub-linear scaling due to communication costs and load imbalances inherent in distributed computing. Demonstrates collaborative filtering, three-stage MapReduce pipeline, and horizontal scalability principles in production-grade recommendation systems.
+
+</div>
+
+## Introduction
 
 Recommendation systems power modern streaming platforms, e-commerce sites, and social media feeds. In this project, I implemented a collaborative filtering approach using MapReduce to compute movie similarities based on user ratings. The system leverages cosine similarity to identify movies with similar rating patterns, enabling recommendations of the form "users who liked Movie A also liked Movie B."
 
