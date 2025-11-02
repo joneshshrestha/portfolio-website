@@ -1,4 +1,523 @@
-<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Jonesh Shrestha - AI/ML Blog RSS Feed]]></title><description><![CDATA[Personal portfolio and blog of Jonesh Shrestha, an AI/ML Engineer specializing in machine learning, deep learning, and data science.]]></description><link>https://joneshshrestha.com</link><generator>GatsbyJS</generator><lastBuildDate>Tue, 28 Oct 2025 17:09:03 GMT</lastBuildDate><item><title><![CDATA[Getting Started with HBase: A Hands-On Guide to NoSQL Data Storage]]></title><description><![CDATA[Introduction HBase is a powerful NoSQL database that runs on top of HDFS (Hadoop Distributed File System), offering scalable storage for…]]></description><link>https://joneshshrestha.com/blog/22-hbase-hands-on-guide/</link><guid isPermaLink="false">https://joneshshrestha.com/blog/22-hbase-hands-on-guide/</guid><dc:creator><![CDATA[Jonesh Shrestha]]></dc:creator><pubDate>Tue, 28 Oct 2025 00:00:00 GMT</pubDate><content:encoded>&lt;h2&gt;Introduction&lt;/h2&gt;&lt;p&gt;HBase is a powerful NoSQL database that runs on top of HDFS (Hadoop Distributed File System), offering scalable storage for massive datasets. Unlike traditional relational databases, HBase is a column-oriented key-value store that excels at handling sparse data and real-time read/write operations. In this tutorial, I&amp;#x27;ll walk you through setting up HBase using Docker and demonstrate practical operations like creating tables, inserting data, and managing column families.&lt;/p&gt;&lt;h2&gt;Understanding HBase Architecture&lt;/h2&gt;&lt;p&gt;Before diving into the hands-on portion, let&amp;#x27;s understand how HBase works. The system consists of three main components:&lt;/p&gt;&lt;p&gt;&lt;img src=&quot;/img/Hbase-system.png&quot; alt=&quot;HBase System Architecture&quot;/&gt;&lt;/p&gt;&lt;p&gt;&lt;em&gt;HBase system architecture showing Master, Zookeeper, and RegionServer components. &lt;a href=&quot;https://blueskyareahm.medium.com/try-hbase-shell-with-docker-image-6547d93df4be&quot;&gt;Image reference&lt;/a&gt;&lt;/em&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;strong&gt;Master&lt;/strong&gt;: Manages metadata and coordinates RegionServers&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Zookeeper&lt;/strong&gt;: Coordinates the cluster and stores RegionServer information&lt;/li&gt;&lt;li&gt;&lt;strong&gt;RegionServer&lt;/strong&gt;: Communicates with clients and handles actual data storage&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;HBase bypasses the MapReduce engine, providing faster direct access to data stored in HDFS.&lt;/p&gt;&lt;h2&gt;Prerequisites&lt;/h2&gt;&lt;p&gt;Before we begin, you&amp;#x27;ll need Docker installed on your machine. You can verify your installation with:&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot;&gt;docker -v
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Jonesh Shrestha - AI/ML Blog RSS Feed]]></title><description><![CDATA[Personal portfolio and blog of Jonesh Shrestha, an AI/ML Engineer specializing in machine learning, deep learning, and data science.]]></description><link>https://joneshshrestha.com</link><generator>GatsbyJS</generator><lastBuildDate>Sun, 02 Nov 2025 18:13:39 GMT</lastBuildDate><item><title><![CDATA[Unsupervised Document Clustering of BBC News Articles with K-Means]]></title><description><![CDATA[TL;DR Applied K-means clustering to 2,225 BBC News articles (2004-2005) using term frequency features.  K=5 achieved 76.4% homogeneity and…]]></description><link>https://joneshshrestha.com/blog/24-bbc-news-document-clustering/</link><guid isPermaLink="false">https://joneshshrestha.com/blog/24-bbc-news-document-clustering/</guid><dc:creator><![CDATA[Jonesh Shrestha]]></dc:creator><pubDate>Sun, 02 Nov 2025 00:00:00 GMT</pubDate><content:encoded>&lt;div class=&quot;bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg&quot;&gt;&lt;h2&gt;TL;DR&lt;/h2&gt;&lt;p&gt;Applied K-means clustering to 2,225 BBC News articles (2004-2005) using term frequency features. &lt;strong&gt;K=5 achieved 76.4% homogeneity and 76.7% completeness&lt;/strong&gt; against editorial categories (business, entertainment, politics, sport, tech). Systematic experimentation with K=4-8 revealed optimal balance at K=5, successfully identifying specialized clusters including gaming (100% &amp;quot;game&amp;quot; term coverage), politics (&amp;quot;mr&amp;quot;, &amp;quot;govern&amp;quot;), tech (&amp;quot;use&amp;quot;, &amp;quot;technolog&amp;quot;), and entertainment (&amp;quot;film&amp;quot;, &amp;quot;award&amp;quot;). Built cosine similarity-based classifier for new document assignment. Demonstrates unsupervised learning&amp;#x27;s power to discover semantic structure from raw term frequencies, with word cloud visualizations and quantitative evaluation metrics.&lt;/p&gt;&lt;/div&gt;&lt;h2&gt;Introduction&lt;/h2&gt;&lt;p&gt;Can an algorithm automatically organize news articles by topic without being told what the categories are? This is the power of unsupervised learning. I tackled this challenge using K-means clustering on 2,225 BBC News articles spanning business, entertainment, politics, sport, and tech.&lt;/p&gt;&lt;p&gt;The fascinating part? The algorithm never sees category labels during training. It discovers natural groupings purely from word usage patterns. The goal was to see how well these data-driven clusters align with human editorial categories and whether the algorithm might discover patterns humans missed.&lt;/p&gt;&lt;h2&gt;The Dataset: BBC News 2004-2005&lt;/h2&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+tf_df = pd.read_csv(&amp;quot;BBC_News_5_Categories/BBC_News_5_TF.csv&amp;quot;, index_col=0)
+features_df = pd.read_csv(&amp;quot;BBC_News_5_Categories/BBC_News_5_Features.csv&amp;quot;, header=None)
+classes_df = pd.read_csv(&amp;quot;BBC_News_5_Categories/BBC_News_5_Classes.csv&amp;quot;, header=None, index_col=0)
+
+print(f&amp;quot;Documents: {tf_df.shape[1]}&amp;quot;)    # 2225
+print(f&amp;quot;Terms: {tf_df.shape[0]}&amp;quot;)        # 6167
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The data comes as a &lt;strong&gt;term-document matrix&lt;/strong&gt;: rows are terms (words), columns are documents (articles). Each cell contains the frequency of that term in that document.&lt;/p&gt;&lt;h3&gt;Exploring Term Frequencies&lt;/h3&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;term_frequencies = tf_df.sum(axis=1)
+tf_sorted = term_frequencies.sort_values(ascending=False)
+
+print(tf_sorted.head(20))
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;This gives us the most common words across all articles. When I plotted this:&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;plt.plot(sorted(term_frequencies, reverse=True))
+plt.xlabel(&amp;quot;Terms&amp;quot;)
+plt.ylabel(&amp;quot;Frequency&amp;quot;)
+plt.title(&amp;quot;Term Frequency Distribution (Zipf&amp;#x27;s Law)&amp;quot;)
+plt.show()
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Classic Zipf&amp;#x27;s law! A few terms appear extremely frequently (like &amp;quot;year&amp;quot;, &amp;quot;mr&amp;quot;, &amp;quot;game&amp;quot;), while most terms are rare. This is a fundamental property of natural language.&lt;/p&gt;&lt;h3&gt;Train-Test Split&lt;/h3&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;from sklearn.model_selection import train_test_split
+
+classes_np = classes_df.to_numpy().ravel()
+
+X_train, X_test, y_train, y_test = train_test_split(
+    tf_df.T, classes_np, test_size=0.2, random_state=99
+)
+
+print(f&amp;quot;X_train: {X_train.shape}&amp;quot;)  # (1780, 6167)
+print(f&amp;quot;X_test: {X_test.shape}&amp;quot;)    # (445, 6167)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Notice the &lt;code&gt;.T&lt;/code&gt; transpose! Machine learning expects &lt;strong&gt;rows as samples, columns as features&lt;/strong&gt;. Our data had terms as rows, so I transposed to get documents as rows.&lt;/p&gt;&lt;p&gt;Even though clustering is unsupervised, I created a test set to evaluate how well the discovered clusters generalize to new documents.&lt;/p&gt;&lt;h2&gt;Building Custom K-Means from Scratch&lt;/h2&gt;&lt;p&gt;Here&amp;#x27;s the K-means implementation I used (custom, not scikit-learn):&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;from scipy.spatial import distance
+import numpy.ma as ma
+
+def kmeans(Data, K=3, max_iterations=20, metric=&amp;quot;cosine&amp;quot;, mask_zeros=False):
+    &amp;quot;&amp;quot;&amp;quot;
+    K-means clustering with configurable distance metric.
+
+    Args:
+        Data: N x M matrix (N samples, M features)
+        K: number of clusters
+        max_iterations: max iterations if no convergence
+        metric: distance metric (euclidean, cosine, etc.)
+        mask_zeros: whether to mask zeros when computing centroids
+
+    Returns:
+        clusters: cluster labels for each instance
+        centroids: K centroid vectors
+    &amp;quot;&amp;quot;&amp;quot;
+    # Random initialization: pick K random samples as initial centroids
+    idx = np.random.choice(len(Data), K, replace=False)
+    centroids = Data[idx, :]
+
+    # Initial assignment: find nearest centroid for each sample
+    clusters = np.argmin(distance.cdist(Data, centroids, metric), axis=1)
+
+    for j in range(max_iterations):
+        centroids = np.zeros((K, Data.shape[1]))
+
+        for i in range(K):
+            cluster_i = Data[clusters == i, :]
+
+            if mask_zeros:
+                mc = ma.masked_array(cluster_i, mask=(cluster_i == 0))
+                centroids[i] = mc.mean(axis=0)
+            else:
+                centroids[i] = cluster_i.mean(axis=0)
+
+        # Reassign clusters based on new centroids
+        new_clusters = np.argmin(distance.cdist(Data, centroids, metric), axis=1)
+
+        # Check convergence
+        if np.array_equal(clusters, new_clusters):
+            break
+
+        clusters = new_clusters
+
+    return clusters, centroids
+&lt;/code&gt;&lt;/pre&gt;&lt;h3&gt;Why Cosine Distance for Text?&lt;/h3&gt;&lt;p&gt;The &lt;code&gt;metric=&amp;quot;cosine&amp;quot;&lt;/code&gt; parameter is critical. For text data, &lt;strong&gt;cosine distance captures semantic similarity regardless of document length&lt;/strong&gt;.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;A 100-word article and a 1000-word article about the same topic should be similar&lt;/li&gt;&lt;li&gt;Cosine distance focuses on which words appear together, not how many total words&lt;/li&gt;&lt;li&gt;Euclidean distance fails in high-dimensional sparse spaces (most terms don&amp;#x27;t appear in most documents)&lt;/li&gt;&lt;/ul&gt;&lt;h3&gt;Running Initial Clustering&lt;/h3&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;X_train_np = X_train.to_numpy()
+clusters, centroids = kmeans(X_train_np, K=3)
+
+print(f&amp;quot;Cluster 0: {(clusters == 0).sum()} documents&amp;quot;)
+print(f&amp;quot;Cluster 1: {(clusters == 1).sum()} documents&amp;quot;)
+print(f&amp;quot;Cluster 2: {(clusters == 2).sum()} documents&amp;quot;)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Output:&lt;/p&gt;&lt;pre&gt;&lt;code&gt;Cluster 0: 716 documents
+Cluster 1: 438 documents
+Cluster 2: 626 documents
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Reasonably balanced clusters! Now the question is: what do they represent?&lt;/p&gt;&lt;h2&gt;Analyzing Clusters: What Topics Did We Find?&lt;/h2&gt;&lt;p&gt;I created a comprehensive cluster analysis function:&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;def cluster_report(data, cluster, centroids, features):
+    &amp;quot;&amp;quot;&amp;quot;
+    Generate detailed report for each cluster.
+
+    Returns:
+        cluster_dict: {cluster_label: DataFrame with Freq, DF, % of Docs}
+        cluster_sizes: {cluster_label: size}
+    &amp;quot;&amp;quot;&amp;quot;
+    cluster_sizes = {}
+    cluster_dict = {}
+
+    for cluster_label in np.unique(cluster):
+        cluster_size = (cluster == cluster_label).sum()
+        cluster_sizes[cluster_label] = cluster_size
+
+        # Get documents in this cluster
+        label_idx = np.where(cluster == cluster_label)
+        cluster_tf = data[label_idx]
+
+        # Document Frequency: how many docs contain each term
+        df = (cluster_tf &amp;gt; 0).sum(axis=0)
+        pct_docs = (df / cluster_size) * 100
+
+        # Use centroid directly for frequency weights
+        freq = centroids[cluster_label]
+
+        report = pd.DataFrame({
+            &amp;#x27;&amp;#x27;: features,
+            &amp;#x27;Freq&amp;#x27;: freq,
+            &amp;#x27;DF&amp;#x27;: df,
+            &amp;#x27;% of Docs&amp;#x27;: pct_docs
+        })
+
+        report = report.set_index(&amp;#x27;&amp;#x27;)
+        cluster_dict[cluster_label] = report
+
+    return cluster_dict, cluster_sizes
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;This function computes three key metrics for each term in each cluster:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;strong&gt;Freq&lt;/strong&gt;: Centroid weight (mean frequency across cluster documents)&lt;/li&gt;&lt;li&gt;&lt;strong&gt;DF&lt;/strong&gt;: Document frequency (how many cluster docs contain this term)&lt;/li&gt;&lt;li&gt;&lt;strong&gt;% of Docs&lt;/strong&gt;: DF as percentage of cluster size&lt;/li&gt;&lt;/ul&gt;&lt;h3&gt;Displaying Top Terms&lt;/h3&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;features_np = features_df.to_numpy().ravel()
+cluster_dict, cluster_sizes = cluster_report(X_train_np, clusters, centroids, features_np)
+
+def display_clusters_summary(cluster_dict, cluster_sizes, num_terms=10):
+    for c in cluster_dict.keys():
+        cluster_rep = cluster_dict[c]
+        print(f&amp;quot;\nCluster {c} | size = {cluster_sizes[c]}&amp;quot;)
+        print(&amp;quot;----------------------------&amp;quot;)
+        print(cluster_rep.sort_values(by=&amp;quot;Freq&amp;quot;, ascending=False).head(num_terms))
+
+display_clusters_summary(cluster_dict, cluster_sizes, 10)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Output for K=3:&lt;/p&gt;&lt;pre&gt;&lt;code&gt;Cluster 0 | size = 716
+----------------------------
+        Freq   DF  % of Docs
+year    1.47  494      68.99
+game    1.45  301      42.04
+play    1.10  360      50.28
+film    1.03  177      24.72
+time    0.91  360      50.28
+best    0.89  223      31.15
+win     0.86  313      43.72
+
+Cluster 1 | size = 438
+----------------------------
+         Freq   DF  % of Docs
+year     2.14  348      79.45
+bn       1.38  194      44.29
+compani  1.15  216      49.32
+market   1.09  219      50.00
+firm     0.92  190      43.38
+
+Cluster 2 | size = 626
+----------------------------
+        Freq   DF  % of Docs
+mr      3.06  418      66.77
+peopl   1.93  414      66.13
+use     1.52  336      53.67
+say     1.21  338      53.99
+govern  1.06  251      40.10
+&lt;/code&gt;&lt;/pre&gt;&lt;h3&gt;Interpretation&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;Cluster 0 (716 docs) - Sports &amp;amp; Entertainment&lt;/strong&gt;:&lt;br/&gt;
+Mixed cluster with &amp;quot;game&amp;quot; (42%), &amp;quot;play&amp;quot; (50%), &amp;quot;film&amp;quot; (25%). Sports and entertainment share similar language (&amp;quot;year&amp;quot;, &amp;quot;best&amp;quot;, &amp;quot;win&amp;quot;).&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Cluster 1 (438 docs) - Business &amp;amp; Economics&lt;/strong&gt;:&lt;br/&gt;
+Clear business focus! &amp;quot;bn&amp;quot; (billion) in 44% of docs, &amp;quot;compani&amp;quot; in 49%, &amp;quot;market&amp;quot; in 50%. Strong financial terminology.&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Cluster 2 (626 docs) - Politics &amp;amp; General News&lt;/strong&gt;:&lt;br/&gt;
+&amp;quot;mr&amp;quot; appears in 67% of documents (referring to officials), &amp;quot;govern&amp;quot; in 40%, &amp;quot;peopl&amp;quot; in 66%. Classic political discourse.&lt;/p&gt;&lt;h2&gt;Systematic Experimentation: Finding Optimal K&lt;/h2&gt;&lt;p&gt;The real question: what&amp;#x27;s the best number of clusters? I tested K=4 through K=8 with multiple runs each.&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;from collections import Counter
+
+for k in range(4, 9):
+    print(f&amp;quot;\n{&amp;#x27;=&amp;#x27;*50}&amp;quot;)
+    print(f&amp;quot;Testing K = {k}&amp;quot;)
+    print(&amp;#x27;=&amp;#x27;*50)
+
+    for run in range(5):
+        clusters, centroids = kmeans(X_train_np, K=k)
+
+        print(f&amp;quot;\nRun {run + 1}:&amp;quot;)
+        for cluster in np.unique(clusters):
+            cluster_idx = [i for i, label in enumerate(clusters) if label == cluster]
+            categories = [classes_np[i] for i in cluster_idx]
+            counts = dict(Counter(categories).most_common())
+            print(f&amp;quot;  Cluster {cluster} (n={len(cluster_idx)}): {counts}&amp;quot;)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;This shows me which actual categories ended up in each cluster, helping identify meaningful patterns.&lt;/p&gt;&lt;h3&gt;Key Findings&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;K=4&lt;/strong&gt;: Politics and tech separate nicely, but sports/entertainment still mixed.&lt;/p&gt;&lt;p&gt;&lt;strong&gt;K=5&lt;/strong&gt; ⭐ (Optimal): Something amazing happened!&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;best_k = 5
+best_clusters, best_centroids = kmeans(X_train_np, K=best_k)
+cluster_dict, sizes = cluster_report(X_train_np, best_clusters, best_centroids, features_np)
+
+# One run produced this:
+# Cluster 0 (234 docs): Gaming cluster - &amp;quot;game&amp;quot; freq 8.99, appears in 100% of docs!
+# Cluster 1 (189 docs): Entertainment - &amp;quot;film&amp;quot; (2.86), &amp;quot;award&amp;quot; (1.59), &amp;quot;star&amp;quot; (1.27)
+# Cluster 2 (245 docs): Sports - &amp;quot;play&amp;quot; (1.21), &amp;quot;win&amp;quot; (1.12), &amp;quot;england&amp;quot; (0.93)
+# Cluster 3 (963 docs): Politics - &amp;quot;mr&amp;quot;, &amp;quot;govern&amp;quot;, &amp;quot;labour&amp;quot;, &amp;quot;elect&amp;quot;
+# Cluster 4 (149 docs): Technology - &amp;quot;use&amp;quot;, &amp;quot;technolog&amp;quot;, &amp;quot;mobil&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;K=5 successfully separated:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;strong&gt;Video games&lt;/strong&gt; from traditional sports (!)&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Film/entertainment&lt;/strong&gt; from sports events&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Clear political discourse&lt;/strong&gt;&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Technology topics&lt;/strong&gt;&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;The gaming cluster is remarkable &amp;quot;game&amp;quot; appears in 100% of documents with frequency 8.99! The algorithm discovered that gaming articles have such distinctive vocabulary they deserve their own cluster.&lt;/p&gt;&lt;p&gt;&lt;strong&gt;K=6-8&lt;/strong&gt;: Over-segmentation. Clusters become too small (41-doc clusters at K=8) and unstable across runs.&lt;/p&gt;&lt;h2&gt;Word Cloud Visualizations&lt;/h2&gt;&lt;p&gt;To make clusters interpretable at a glance, I created word clouds:&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;from wordcloud import WordCloud
+
+def plot_wordclouds(cluster_dict):
+    for cluster_label, df in cluster_dict.items():
+        freq_dict = df[&amp;quot;Freq&amp;quot;].to_dict()
+
+        wc = WordCloud(
+            width=800,
+            height=400,
+            background_color=&amp;quot;white&amp;quot;,
+            colormap=&amp;quot;viridis&amp;quot;
+        )
+        wc.generate_from_frequencies(freq_dict)
+
+        plt.figure(figsize=(10, 5))
+        plt.imshow(wc, interpolation=&amp;quot;bilinear&amp;quot;)
+        plt.axis(&amp;quot;off&amp;quot;)
+        plt.title(f&amp;quot;Cluster {cluster_label}&amp;quot;, fontsize=16)
+        plt.show()
+
+plot_wordclouds(cluster_dict)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Word clouds scale term size by frequency, making dominant vocabulary immediately visible. Business clusters show &amp;quot;compani&amp;quot;, &amp;quot;market&amp;quot;, &amp;quot;bn&amp;quot; prominently. Political clusters emphasize &amp;quot;mr&amp;quot;, &amp;quot;govern&amp;quot;, &amp;quot;labour&amp;quot;. Sports clusters highlight &amp;quot;game&amp;quot;, &amp;quot;play&amp;quot;, &amp;quot;win&amp;quot;.&lt;/p&gt;&lt;p&gt;These visualizations are perfect for stakeholder presentations no need to explain term frequency tables!&lt;/p&gt;&lt;h2&gt;Quantitative Evaluation: How Well Did We Do?&lt;/h2&gt;&lt;p&gt;Time for objective metrics. I compared discovered clusters against the original editorial categories.&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;from sklearn.metrics import completeness_score, homogeneity_score
+
+k5_clusters, k5_centroids = kmeans(X_train_np, K=5)
+
+homogeneity = homogeneity_score(y_train, k5_clusters)
+completeness = completeness_score(y_train, k5_clusters)
+
+print(f&amp;quot;Homogeneity Score: {homogeneity:.4f}&amp;quot;)    # 0.7641
+print(f&amp;quot;Completeness Score: {completeness:.4f}&amp;quot;)  # 0.7672
+&lt;/code&gt;&lt;/pre&gt;&lt;h3&gt;Understanding the Metrics&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;Homogeneity (0.7641)&lt;/strong&gt;: Do clusters contain only documents from a single category?&lt;br/&gt;
+→ Each cluster is 76.4% &amp;quot;pure&amp;quot;. Some mixing occurs, but clusters are mostly coherent.&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Completeness (0.7672)&lt;/strong&gt;: Are all documents from a category in the same cluster?&lt;br/&gt;
+→ Category members are 76.7% grouped together. Some fragmentation exists.&lt;/p&gt;&lt;p&gt;Both scores range 0-1, where 1 is perfect. &lt;strong&gt;These are strong scores for completely unsupervised learning!&lt;/strong&gt;&lt;/p&gt;&lt;h3&gt;Why Not Perfect?&lt;/h3&gt;&lt;p&gt;The imperfect scores make sense:&lt;/p&gt;&lt;ol&gt;&lt;li&gt;&lt;strong&gt;Vocabulary overlap&lt;/strong&gt;: Business and tech both discuss &amp;quot;compani&amp;quot;, &amp;quot;new&amp;quot;, &amp;quot;technolog&amp;quot;&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Ambiguous content&lt;/strong&gt;: Some articles span categories (e.g., business of entertainment)&lt;/li&gt;&lt;li&gt;&lt;strong&gt;K-means assumptions&lt;/strong&gt;: Spherical clusters, equal variance natural language doesn&amp;#x27;t always follow these&lt;/li&gt;&lt;/ol&gt;&lt;p&gt;The algorithm discovered structure that 76% aligns with human editorial decisions, using only word frequencies. That&amp;#x27;s impressive!&lt;/p&gt;&lt;h2&gt;Classifying New Documents&lt;/h2&gt;&lt;p&gt;Now I have cluster structure how do I classify new articles?&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;def classify_document_cosine(doc_vector, centroids):
+    &amp;quot;&amp;quot;&amp;quot;
+    Assign document to nearest cluster using cosine similarity.
+
+    Returns:
+        cluster_label: assigned cluster
+        max_similarity: similarity score to that cluster
+    &amp;quot;&amp;quot;&amp;quot;
+    # Normalize document and centroids
+    doc_norm = np.linalg.norm(doc_vector)
+    centroids_norm = np.linalg.norm(centroids, axis=1)
+
+    # Compute cosine similarities
+    if doc_norm &amp;gt; 0:
+        cosine_sims = np.dot(centroids, doc_vector) / (centroids_norm * doc_norm)
+    else:
+        cosine_sims = np.zeros(len(centroids))
+
+    # Assign to highest similarity
+    cluster_label = np.argmax(cosine_sims)
+    max_similarity = cosine_sims[cluster_label]
+
+    return cluster_label, max_similarity
+&lt;/code&gt;&lt;/pre&gt;&lt;h3&gt;Classifying Test Set&lt;/h3&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;X_test_np = X_test.to_numpy()
+bbc_news_df = pd.read_csv(&amp;quot;BBC_News_5_Categories/bbc-5categories.csv&amp;quot;)
+titles = bbc_news_df[&amp;quot;title&amp;quot;].to_numpy()
+
+results = []
+
+for i in range(len(X_test_np)):
+    doc_id = X_test.index[i]
+    title = titles[doc_id]
+
+    cluster, similarity = classify_document_cosine(X_test_np[i], centroids)
+
+    results.append({
+        &amp;#x27;Document ID&amp;#x27;: doc_id,
+        &amp;#x27;Title&amp;#x27;: title,
+        &amp;#x27;Cluster&amp;#x27;: cluster,
+        &amp;#x27;Similarity&amp;#x27;: similarity
+    })
+
+results_df = pd.DataFrame(results)
+print(results_df.head(20))
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Sample output:&lt;/p&gt;&lt;pre&gt;&lt;code&gt;   Document ID                            Title  Cluster  Similarity
+0         1823  EU to probe Apple&amp;#x27;s French deal        1       0.923
+1         1456     Blair backs school discipline        2       0.887
+2         2034  England crash out of Under-21s        0       0.945
+3         1289    Nokia unveils N-series handset        1       0.912
+...
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Documents with &lt;strong&gt;high similarity (&amp;gt;0.9)&lt;/strong&gt; show strong topical match. Lower similarities indicate mixed characteristics or ambiguous content.&lt;/p&gt;&lt;p&gt;This system enables real-time automatic categorization of incoming news articles no manual tagging required!&lt;/p&gt;&lt;h2&gt;What I Learned: Key Insights&lt;/h2&gt;&lt;h3&gt;1. Topic Structure Emerges from Word Patterns&lt;/h3&gt;&lt;p&gt;Without any category labels, K-means discovered meaningful topical groupings purely from term frequencies. This demonstrates that &lt;strong&gt;semantic structure is encoded in word usage patterns&lt;/strong&gt;.&lt;/p&gt;&lt;h3&gt;2. Cosine Distance is Essential for Text&lt;/h3&gt;&lt;p&gt;Using Euclidean distance would have failed. Text data is:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;strong&gt;High-dimensional&lt;/strong&gt;: 6,167 features&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Sparse&lt;/strong&gt;: Most terms don&amp;#x27;t appear in most documents&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Variable length&lt;/strong&gt;: Documents have different word counts&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Cosine distance handles all these properties by measuring angle between vectors, not magnitude.&lt;/p&gt;&lt;h3&gt;3. Optimal K Requires Experimentation&lt;/h3&gt;&lt;p&gt;There&amp;#x27;s no formula for perfect K. I had to:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Test multiple values (K=4-8)&lt;/li&gt;&lt;li&gt;Run multiple trials per K (random initialization varies)&lt;/li&gt;&lt;li&gt;Balance cluster stability vs. specialization&lt;/li&gt;&lt;li&gt;Consider domain knowledge (5 original categories suggested K=5)&lt;/li&gt;&lt;/ul&gt;&lt;h3&gt;4. Random Initialization Matters&lt;/h3&gt;&lt;p&gt;K-means results vary with initial centroid placement. That&amp;#x27;s why I ran 5 trials per K value. Some runs produced better clusters than others this is expected with random initialization.&lt;/p&gt;&lt;h3&gt;5. The Algorithm Found Something Humans Didn&amp;#x27;t&lt;/h3&gt;&lt;p&gt;The &lt;strong&gt;gaming cluster&lt;/strong&gt; at K=5 wasn&amp;#x27;t an original category! The algorithm discovered that video game articles have distinctive enough vocabulary to warrant separation from general sports. This is the power of unsupervised learning it can reveal patterns humans didn&amp;#x27;t explicitly define.&lt;/p&gt;&lt;h3&gt;6. Vocabulary Overlap Limits Separation&lt;/h3&gt;&lt;p&gt;Business and tech articles are hardest to separate they share terminology. Sports and entertainment also overlap with action language (&amp;quot;win&amp;quot;, &amp;quot;best&amp;quot;, &amp;quot;star&amp;quot;). Perfect clustering is impossible when categories naturally blend.&lt;/p&gt;&lt;h2&gt;Practical Applications&lt;/h2&gt;&lt;p&gt;These techniques power real-world systems:&lt;/p&gt;&lt;p&gt;&lt;strong&gt;News Aggregators&lt;/strong&gt;: Automatically organize articles by topic without manual tagging&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Content Management&lt;/strong&gt;: Route incoming articles to appropriate sections&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Recommendation Engines&lt;/strong&gt;: Find similar articles by cluster membership&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Search Enhancement&lt;/strong&gt;: Filter results by automatically detected topic&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Trend Detection&lt;/strong&gt;: Identify emerging topics by monitoring cluster evolution&lt;/p&gt;&lt;h2&gt;When to Use K-Means Clustering&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;Use K-means when&lt;/strong&gt;:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;You have no labeled training data&lt;/li&gt;&lt;li&gt;You want to discover natural groupings&lt;/li&gt;&lt;li&gt;You can experiment with different K values&lt;/li&gt;&lt;li&gt;Your data works with distance metrics (numerical, TF-IDF weighted text)&lt;/li&gt;&lt;li&gt;You need fast, scalable clustering (K-means is efficient)&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;strong&gt;Don&amp;#x27;t use K-means when&lt;/strong&gt;:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;You know the categories and have labeled data (use supervised learning instead)&lt;/li&gt;&lt;li&gt;Clusters have irregular shapes (use DBSCAN or hierarchical clustering)&lt;/li&gt;&lt;li&gt;You can&amp;#x27;t tune K experimentally&lt;/li&gt;&lt;li&gt;Features are categorical (K-means assumes numerical data)&lt;/li&gt;&lt;/ul&gt;&lt;h2&gt;Conclusion&lt;/h2&gt;&lt;p&gt;This project proved that unsupervised learning can discover meaningful structure in text data. K-means clustering with K=5 achieved 76% homogeneity and completeness against human editorial categories, using only term frequencies.&lt;/p&gt;&lt;p&gt;The real insight came from systematic experimentation. By testing K=4-8 with multiple runs, I found that K=5 provides optimal balance matching editorial categories while revealing specialized subcategories like gaming. The algorithm successfully separated politics, technology, business, entertainment, and sports based purely on word usage patterns.&lt;/p&gt;&lt;p&gt;Building this from scratch taught me that text clustering requires:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Proper distance metrics (cosine for text)&lt;/li&gt;&lt;li&gt;Careful data formatting (documents as rows)&lt;/li&gt;&lt;li&gt;Systematic K selection (test multiple values)&lt;/li&gt;&lt;li&gt;Qualitative and quantitative evaluation (term analysis + metrics)&lt;/li&gt;&lt;li&gt;Multiple runs to account for initialization variance&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;The fact that an algorithm can organize 2,225 articles into meaningful topics without seeing a single label demonstrates the power of unsupervised learning. Combined with word clouds for visualization and cosine similarity for classification, this creates a complete document organization pipeline.&lt;/p&gt;&lt;p&gt;Understanding clustering deeply not just calling &lt;code&gt;sklearn.cluster.KMeans()&lt;/code&gt; enables making informed decisions about distance metrics, cluster counts, and evaluation approaches. That&amp;#x27;s the difference between using machine learning and truly understanding it.&lt;/p&gt;&lt;hr/&gt;&lt;h2&gt;📓 Jupyter Notebook&lt;/h2&gt;&lt;p&gt;Want to explore the complete code and run it yourself? Access the full Jupyter notebook with detailed implementations and visualizations:&lt;/p&gt;&lt;p&gt;&lt;strong&gt;&lt;a href=&quot;https://github.com/joneshshrestha/machine-learning-python/blob/main/Document%20Analysis/Document%20Clustering/document-clustering.ipynb&quot;&gt;→ View Notebook on GitHub&lt;/a&gt;&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;You can also run it interactively:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;a href=&quot;https://colab.research.google.com/github/joneshshrestha/machine-learning-python/blob/main/Document%20Analysis/Document%20Clustering/document-clustering.ipynb&quot;&gt;Open in Google Colab&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href=&quot;https://mybinder.org/v2/gh/joneshshrestha/machine-learning-python/main?filepath=Document%20Analysis/Document%20Clustering/document-clustering.ipynb&quot;&gt;Open in Binder&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;</content:encoded></item><item><title><![CDATA[Predicting Community Crime Rates with Multiple Linear Regression]]></title><description><![CDATA[TL;DR Built comprehensive regression pipeline predicting violent crime rates across 1,994 US communities using 97 socioeconomic features…]]></description><link>https://joneshshrestha.com/blog/23-crime-prediction-regression-analysis/</link><guid isPermaLink="false">https://joneshshrestha.com/blog/23-crime-prediction-regression-analysis/</guid><dc:creator><![CDATA[Jonesh Shrestha]]></dc:creator><pubDate>Sat, 01 Nov 2025 00:00:00 GMT</pubDate><content:encoded>&lt;div class=&quot;bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg&quot;&gt;&lt;h2&gt;TL;DR&lt;/h2&gt;&lt;p&gt;Built comprehensive regression pipeline predicting violent crime rates across 1,994 US communities using 97 socioeconomic features (census + FBI data). &lt;strong&gt;Lasso achieved best test RMSE of 0.1436&lt;/strong&gt;, outperforming Ridge (0.1440), SGD (0.1456), and feature selection approaches. Automated feature selection identified 93 of 97 features as informative. Demonstrated systematic hyperparameter tuning via K-fold cross-validation, bias-variance tradeoff visualization across alpha values, and comparison of L1/L2/Elastic Net regularization techniques. Key insight: L1&amp;#x27;s implicit feature selection proved most effective for this high-dimensional socioeconomic dataset.&lt;/p&gt;&lt;/div&gt;&lt;h2&gt;Introduction&lt;/h2&gt;&lt;p&gt;Can we predict crime rates from socioeconomic factors? This question has huge implications for urban planning and resource allocation. I tackled this using the Communities and Crime dataset, which combines 1990 US Census data with 1995 FBI crime statistics across 1,994 communities.&lt;/p&gt;&lt;p&gt;The challenge was to predict &lt;code&gt;ViolentCrimesPerPop&lt;/code&gt; (normalized 0-1) using 97 features spanning demographics, income, education, employment, family structure, housing, and geography. What made this project interesting was comparing multiple regression approaches from baseline linear regression to sophisticated regularization techniques to find the optimal balance between prediction accuracy and generalization.&lt;/p&gt;&lt;h2&gt;Loading and Preprocessing the Data&lt;/h2&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+
+communities_df = pd.read_csv(&amp;quot;communities/communities.csv&amp;quot;)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;First thing I discovered: the dataset has two identifier columns (&lt;code&gt;state&lt;/code&gt; and &lt;code&gt;communityname&lt;/code&gt;) that need to be dropped for regression.&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;comm_clean_df = communities_df.drop(columns=[&amp;quot;state&amp;quot;, &amp;quot;communityname&amp;quot;])
+&lt;/code&gt;&lt;/pre&gt;&lt;h3&gt;Handling Missing Values&lt;/h3&gt;&lt;p&gt;Here&amp;#x27;s where things got interesting. When I checked for missing values:&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;comm_clean_df.isna().sum()[comm_clean_df.isna().sum() &amp;gt; 0]
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Nothing showed up! But when I examined data types, I found &lt;code&gt;OtherPerCap&lt;/code&gt; was stored as object type while all other columns were float. This was a clue.&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;comm_clean_df[&amp;quot;OtherPerCap&amp;quot;].unique()
+# Output shows &amp;#x27;?&amp;#x27; characters!
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The dataset used &amp;#x27;?&amp;#x27; to represent missing values. I converted these to proper NaN values and imputed using the column mean:&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;comm_clean_df = comm_clean_df.replace(&amp;quot;?&amp;quot;, np.nan)
+comm_clean_df[&amp;quot;OtherPerCap&amp;quot;] = comm_clean_df[&amp;quot;OtherPerCap&amp;quot;].astype(&amp;quot;float64&amp;quot;)
+comm_clean_df[&amp;quot;OtherPerCap&amp;quot;] = comm_clean_df[&amp;quot;OtherPerCap&amp;quot;].fillna(
+    comm_clean_df[&amp;quot;OtherPerCap&amp;quot;].mean()
+)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;This preserved 1,993 out of 1,994 records. Always check data types, not just &lt;code&gt;isna()&lt;/code&gt;!&lt;/p&gt;&lt;h3&gt;Train-Test Split&lt;/h3&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;# Separate target variable
+comm_target_df = comm_clean_df[[&amp;quot;ViolentCrimesPerPop&amp;quot;]]
+comm_clean_df.drop(columns=[&amp;quot;ViolentCrimesPerPop&amp;quot;], inplace=True)
+
+# 80-20 split with random_state for reproducibility
+X_train, X_test, y_train, y_test = train_test_split(
+    comm_clean_df, comm_target_df, test_size=0.2, random_state=33
+)
+
+# Convert to 1D arrays as expected by sklearn
+y_train = y_train.to_numpy().ravel()
+y_test = y_test.to_numpy().ravel()
+
+print(f&amp;quot;X_train shape: {X_train.shape}&amp;quot;)  # (1595, 97)
+print(f&amp;quot;X_test shape: {X_test.shape}&amp;quot;)    # (399, 97)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;I used &lt;code&gt;.ravel()&lt;/code&gt; to flatten the target arrays into 1D sklearn models expect this format.&lt;/p&gt;&lt;h2&gt;Baseline: Standard Multiple Linear Regression&lt;/h2&gt;&lt;p&gt;Before getting fancy with regularization, I built a baseline to understand the data.&lt;/p&gt;&lt;h3&gt;Creating a Reusable Performance Function&lt;/h3&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;from sklearn.metrics import root_mean_squared_error
+
+def measure_performance(X, y, model, metric=root_mean_squared_error):
+    y_pred = model.predict(X)
+    score = metric(y, y_pred)
+    return score
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;This function makes it easy to evaluate any model consistently using RMSE.&lt;/p&gt;&lt;h3&gt;Training and Evaluating&lt;/h3&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;from sklearn.linear_model import LinearRegression
+
+linreg = LinearRegression()
+linreg.fit(X_train, y_train)
+
+train_rmse = measure_performance(X_train, y_train, linreg)
+print(f&amp;quot;Training RMSE: {train_rmse:.4f}&amp;quot;)  # 0.1262
+&lt;/code&gt;&lt;/pre&gt;&lt;h3&gt;Visualizing Predictions&lt;/h3&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;y_pred_train = linreg.predict(X_train)
+
+plt.scatter(y_train, y_pred_train, c=&amp;quot;r&amp;quot;, alpha=0.5)
+plt.plot([y_train.min(), y_train.max()], [y_train.min(), y_train.max()], &amp;quot;g-&amp;quot;)
+plt.xlabel(&amp;quot;Actual Values&amp;quot;)
+plt.ylabel(&amp;quot;Predicted Values&amp;quot;)
+plt.title(&amp;quot;Actual vs Predicted Crime Rates&amp;quot;)
+plt.show()
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The scatter plot shows strong correlation but with variance at higher crime rates suggesting the model struggles with extreme values.&lt;/p&gt;&lt;h3&gt;Examining Coefficients&lt;/h3&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;categories = comm_clean_df.columns.to_numpy()
+weights = linreg.coef_.flatten()
+
+plt.figure(figsize=(10, 18))
+plt.barh(categories, weights)
+plt.xlabel(&amp;quot;Coefficient Values&amp;quot;)
+plt.ylabel(&amp;quot;Features&amp;quot;)
+plt.tight_layout()
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The coefficient plot reveals which socioeconomic factors have the strongest influence on crime predictions. Large positive coefficients indicate features that increase predicted crime rates, while large negative coefficients indicate protective factors.&lt;/p&gt;&lt;h3&gt;Cross-Validation&lt;/h3&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;from sklearn.model_selection import KFold
+
+kf = KFold(n_splits=10)
+total_rmse = []
+
+for train_idx, test_idx in kf.split(X_train):
+    linreg.fit(X_train.iloc[train_idx], y_train[train_idx])
+    fold_rmse = measure_performance(
+        X_train.iloc[test_idx], y_train[test_idx], linreg
+    )
+    total_rmse.append(fold_rmse)
+
+print(f&amp;quot;10-fold CV RMSE: {np.mean(total_rmse):.4f}&amp;quot;)  # 0.1343
+print(f&amp;quot;Training RMSE: {train_rmse:.4f}&amp;quot;)             # 0.1262
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The CV RMSE (0.1343) being slightly higher than training RMSE (0.1262) is expected. The small gap suggests the model generalizes reasonably well without severe overfitting.&lt;/p&gt;&lt;h2&gt;Automated Feature Selection&lt;/h2&gt;&lt;p&gt;With 97 features, some might be redundant or noisy. I implemented systematic feature selection using &lt;code&gt;SelectPercentile&lt;/code&gt;.&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;from sklearn.feature_selection import SelectPercentile, f_regression
+from sklearn.model_selection import cross_val_score
+
+percentiles = range(1, 100, 5)
+
+def best_features(train, target, reg_model):
+    results = []
+    for percentile in percentiles:
+        fs = SelectPercentile(f_regression, percentile=percentile)
+        X_train_fs = fs.fit_transform(train, target)
+
+        scores = cross_val_score(
+            reg_model, X_train_fs, target, cv=5,
+            scoring=&amp;quot;neg_root_mean_squared_error&amp;quot;
+        )
+        fs_rmse = abs(scores.mean())
+        results.append(fs_rmse)
+
+    return results
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;This function tests percentiles from 1% to 96% in 5% increments, performing 5-fold CV for each. The &lt;code&gt;scoring=&amp;#x27;neg_root_mean_squared_error&amp;#x27;&lt;/code&gt; returns negative values (sklearn convention), so I take the absolute value.&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;results = best_features(X_train, y_train, linreg)
+
+plt.plot(list(percentiles), results)
+plt.xlabel(&amp;quot;Percentage of features selected&amp;quot;)
+plt.ylabel(&amp;quot;Cross validation RMSE&amp;quot;)
+plt.show()
+&lt;/code&gt;&lt;/pre&gt;&lt;h3&gt;Finding the Optimal Subset&lt;/h3&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;optimal_percentile_ind = np.where(results == np.min(results))[0][0]
+optimal_percentile = percentiles[optimal_percentile_ind]
+
+print(f&amp;quot;Optimal percentile: {optimal_percentile}&amp;quot;)  # 96%
+print(f&amp;quot;Best CV RMSE: {min(results):.4f}&amp;quot;)          # 0.1344
+
+optimal_num_features = int(optimal_percentile * len(X_train.columns) / 100)
+print(f&amp;quot;Optimal number of features: {optimal_num_features}&amp;quot;)  # 93
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Interestingly, 96% of features (93 out of 97) were retained! This suggests most variables contain useful predictive information.&lt;/p&gt;&lt;h3&gt;Applying Feature Selection&lt;/h3&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;fs_best = SelectPercentile(f_regression, percentile=optimal_percentile)
+X_train_fs = fs_best.fit_transform(X_train, y_train)
+X_test_fs = fs_best.transform(X_test)
+
+# Get selected feature names
+best_features = X_train.columns[fs_best.get_support()].values
+print(f&amp;quot;Selected features: {best_features}&amp;quot;)
+
+# Train and evaluate
+fs_linreg = LinearRegression()
+fs_linreg.fit(X_train_fs, y_train)
+fs_rmse = measure_performance(X_test_fs, y_test, fs_linreg)
+print(f&amp;quot;Test RMSE with feature selection: {fs_rmse:.4f}&amp;quot;)  # 0.1438
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;strong&gt;Important note&lt;/strong&gt;: This implementation has slight data leakage since &lt;code&gt;SelectPercentile&lt;/code&gt; is fit on the entire training set before cross-validation splits it. A more rigorous approach would use &lt;code&gt;Pipeline&lt;/code&gt; to re-fit the feature selector inside each fold. For production systems, always use pipelines!&lt;/p&gt;&lt;h2&gt;Ridge Regression: L2 Regularization&lt;/h2&gt;&lt;p&gt;Ridge regression adds an L2 penalty to prevent overfitting by shrinking coefficient magnitudes.&lt;/p&gt;&lt;h3&gt;Systematic Hyperparameter Tuning&lt;/h3&gt;&lt;p&gt;I created a reusable function for hyperparameter optimization:&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;def calc_params(X, y, clf, param_values, param_name, K):
+    X = np.array(X)
+    y = np.array(y)
+
+    train_scores = np.zeros(len(param_values))
+    test_scores = np.zeros(len(param_values))
+
+    for i, param_value in enumerate(param_values):
+        clf.set_params(**{param_name: param_value})
+
+        k_train_scores = np.zeros(K)
+        k_test_scores = np.zeros(K)
+
+        cv = KFold(n_splits=K, shuffle=True, random_state=0)
+
+        j = 0
+        for train, test in cv.split(X):
+            clf.fit(X[train], y[train])
+            k_train_scores[j] = measure_performance(X[train], y[train], clf)
+            k_test_scores[j] = measure_performance(X[test], y[test], clf)
+            j += 1
+
+        train_scores[i] = np.mean(k_train_scores)
+        test_scores[i] = np.mean(k_test_scores)
+
+    # Plot results
+    plt.plot(param_values, train_scores, label=&amp;quot;Train&amp;quot;, alpha=0.8, lw=2, c=&amp;quot;b&amp;quot;)
+    plt.plot(param_values, test_scores, label=&amp;quot;X-Val&amp;quot;, alpha=0.8, lw=2, c=&amp;quot;g&amp;quot;)
+    plt.legend()
+    plt.xlabel(f&amp;quot;{param_name} values&amp;quot;)
+    plt.ylabel(&amp;quot;RMSE&amp;quot;)
+
+    return train_scores, test_scores
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;This function is flexible it works for any parameter, any model, and any K value.&lt;/p&gt;&lt;h3&gt;Finding Optimal Alpha&lt;/h3&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;from sklearn.linear_model import Ridge
+
+ridge_range = np.linspace(0.001, 10, 20)
+ridge_reg = Ridge()
+
+ridge_train_scores, ridge_test_scores = calc_params(
+    X_train, y_train, ridge_reg, ridge_range, &amp;quot;alpha&amp;quot;, 5
+)
+
+# Find best alpha
+ridge_best_alpha_idx = np.argmin(ridge_test_scores)
+ridge_best_alpha = ridge_range[ridge_best_alpha_idx]
+
+print(f&amp;quot;Best alpha: {ridge_best_alpha:.4f}&amp;quot;)                          # 2.6323
+print(f&amp;quot;CV RMSE: {ridge_test_scores[ridge_best_alpha_idx]:.4f}&amp;quot;)     # 0.1343
+&lt;/code&gt;&lt;/pre&gt;&lt;h3&gt;Evaluating on Test Set&lt;/h3&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;best_ridge = Ridge(alpha=ridge_best_alpha)
+best_ridge.fit(X_train, y_train)
+ridge_test_rmse = measure_performance(X_test, y_test, best_ridge)
+
+print(f&amp;quot;Test RMSE: {ridge_test_rmse:.4f}&amp;quot;)  # 0.1440
+&lt;/code&gt;&lt;/pre&gt;&lt;h3&gt;Understanding the Bias-Variance Tradeoff&lt;/h3&gt;&lt;p&gt;The plot from &lt;code&gt;calc_params&lt;/code&gt; clearly shows:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;strong&gt;Low α (weak regularization)&lt;/strong&gt;: Low training RMSE, higher CV RMSE → overfitting (high variance)&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Optimal α&lt;/strong&gt;: Minimal gap between training and CV RMSE → best generalization&lt;/li&gt;&lt;li&gt;&lt;strong&gt;High α (strong regularization)&lt;/strong&gt;: Both errors increase → underfitting (high bias)&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;This is the bias-variance tradeoff in action!&lt;/p&gt;&lt;h2&gt;Lasso Regression: L1 Regularization&lt;/h2&gt;&lt;p&gt;Lasso uses L1 penalty, which not only shrinks coefficients but can zero them out completely performing implicit feature selection.&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;from sklearn.linear_model import Lasso
+
+lasso_range = np.linspace(0.0001, 0.01, 20)
+lasso_reg = Lasso()
+
+lasso_train_scores, lasso_test_scores = calc_params(
+    X_train, y_train, lasso_reg, lasso_range, &amp;quot;alpha&amp;quot;, 5
+)
+
+# Find best alpha
+lasso_best_alpha_idx = np.argmin(lasso_test_scores)
+lasso_best_alpha = lasso_range[lasso_best_alpha_idx]
+
+print(f&amp;quot;Best alpha: {lasso_best_alpha:.4f}&amp;quot;)                         # 0.0001
+print(f&amp;quot;CV RMSE: {lasso_test_scores[lasso_best_alpha_idx]:.4f}&amp;quot;)    # 0.1347
+
+# Test evaluation
+best_lasso = Lasso(alpha=lasso_best_alpha)
+best_lasso.fit(X_train, y_train)
+lasso_test_rmse = measure_performance(X_test, y_test, best_lasso)
+
+print(f&amp;quot;Test RMSE: {lasso_test_rmse:.4f}&amp;quot;)  # 0.1436 ← Best!
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Lasso achieved the best test performance! The very small optimal alpha (0.0001) suggests the dataset benefits from keeping most features with minimal shrinkage, but L1&amp;#x27;s ability to zero out the least informative coefficients gives it an edge over Ridge.&lt;/p&gt;&lt;h2&gt;Stochastic Gradient Descent with Elastic Net&lt;/h2&gt;&lt;p&gt;SGDRegressor is useful for large datasets but requires feature standardization.&lt;/p&gt;&lt;h3&gt;Feature Scaling&lt;/h3&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;strong&gt;Critical&lt;/strong&gt;: Fit the scaler on training data only, then transform both train and test. Never fit on test data!&lt;/p&gt;&lt;h3&gt;Grid Search&lt;/h3&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;from sklearn.linear_model import SGDRegressor
+from sklearn.model_selection import GridSearchCV
+
+sgd_reg = SGDRegressor()
+parameters = {
+    &amp;quot;penalty&amp;quot;: [&amp;quot;l1&amp;quot;, &amp;quot;l2&amp;quot;],
+    &amp;quot;alpha&amp;quot;: np.linspace(0.0001, 10, 20)
+}
+
+grid_search = GridSearchCV(sgd_reg, parameters, cv=5, verbose=1)
+grid_search.fit(X_train_scaled, y_train)
+
+print(f&amp;quot;Best alpha: {grid_search.best_params_[&amp;#x27;alpha&amp;#x27;]}&amp;quot;)      # 0.0001
+print(f&amp;quot;Best penalty: {grid_search.best_params_[&amp;#x27;penalty&amp;#x27;]}&amp;quot;)  # l1
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Grid search tested 40 parameter combinations (2 penalties × 20 alphas) with 5-fold CV = 200 model fits!&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;best_sgd = SGDRegressor(
+    alpha=grid_search.best_params_[&amp;quot;alpha&amp;quot;],
+    penalty=grid_search.best_params_[&amp;quot;penalty&amp;quot;]
+)
+best_sgd.fit(X_train_scaled, y_train)
+
+sgd_train_rmse = measure_performance(X_train_scaled, y_train, best_sgd)
+sgd_test_rmse = measure_performance(X_test_scaled, y_test, best_sgd)
+
+print(f&amp;quot;Train RMSE: {sgd_train_rmse:.4f}&amp;quot;)  # 0.1301
+print(f&amp;quot;Test RMSE: {sgd_test_rmse:.4f}&amp;quot;)    # 0.1456
+&lt;/code&gt;&lt;/pre&gt;&lt;h3&gt;Elastic Net Optimization&lt;/h3&gt;&lt;p&gt;Elastic Net mixes L1 and L2 regularization using the &lt;code&gt;l1_ratio&lt;/code&gt; parameter (0 = pure L2, 1 = pure L1).&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;l1_ratio_range = np.linspace(0, 1, 21)
+elasticnet_sgd = SGDRegressor(penalty=&amp;quot;elasticnet&amp;quot;)
+
+sgd_train_scores, sgd_test_scores = calc_params(
+    X_train_scaled, y_train, elasticnet_sgd, l1_ratio_range, &amp;quot;l1_ratio&amp;quot;, 5
+)
+
+# Find best l1_ratio
+best_l1ratio_idx = np.argmin(sgd_test_scores)
+best_l1ratio = l1_ratio_range[best_l1ratio_idx]
+
+print(f&amp;quot;Best l1_ratio: {best_l1ratio:.4f}&amp;quot;)                     # 0.25
+print(f&amp;quot;CV RMSE: {sgd_test_scores[best_l1ratio_idx]:.4f}&amp;quot;)      # 0.1360
+
+# Test evaluation
+best_elasticnet = SGDRegressor(penalty=&amp;quot;elasticnet&amp;quot;, l1_ratio=best_l1ratio)
+best_elasticnet.fit(X_train_scaled, y_train)
+
+elasticnet_train_rmse = measure_performance(X_train_scaled, y_train, best_elasticnet)
+elasticnet_test_rmse = measure_performance(X_test_scaled, y_test, best_elasticnet)
+
+print(f&amp;quot;Train RMSE: {elasticnet_train_rmse:.4f}&amp;quot;)  # 0.1314
+print(f&amp;quot;Test RMSE: {elasticnet_test_rmse:.4f}&amp;quot;)    # 0.1471
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The optimal mixing ratio of 0.25 (25% L1, 75% L2) combines L1&amp;#x27;s sparsity with L2&amp;#x27;s shrinkage, but interestingly, it performed worse than pure L1. For this dataset, either pure L1 or pure L2 is more effective than a hybrid.&lt;/p&gt;&lt;h2&gt;Model Comparison and Key Insights&lt;/h2&gt;&lt;p&gt;Here&amp;#x27;s how all approaches stacked up:&lt;/p&gt;&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Model&lt;/th&gt;&lt;th&gt;Test RMSE&lt;/th&gt;&lt;th&gt;Rank&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;&lt;strong&gt;Lasso (α=0.0001)&lt;/strong&gt;&lt;/td&gt;&lt;td&gt;&lt;strong&gt;0.1436&lt;/strong&gt;&lt;/td&gt;&lt;td&gt;🥇&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Feature Selection (96%)&lt;/td&gt;&lt;td&gt;0.1438&lt;/td&gt;&lt;td&gt;🥈&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;Ridge (α=2.6323)&lt;/td&gt;&lt;td&gt;0.1440&lt;/td&gt;&lt;td&gt;🥉&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;SGD L1 (α=0.0001)&lt;/td&gt;&lt;td&gt;0.1456&lt;/td&gt;&lt;td&gt;4th&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td&gt;SGD Elastic Net (l1_ratio=0.25)&lt;/td&gt;&lt;td&gt;0.1471&lt;/td&gt;&lt;td&gt;5th&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;h3&gt;What I Learned&lt;/h3&gt;&lt;ol&gt;&lt;li&gt;&lt;p&gt;&lt;strong&gt;Lasso wins for high-dimensional data&lt;/strong&gt;: L1&amp;#x27;s implicit feature selection gave it an edge by zeroing out the least informative coefficients.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;&lt;strong&gt;Regularization is crucial&lt;/strong&gt;: All regularized models performed similarly (within 0.004 RMSE), but all significantly better than unregularized approaches would on new data.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;&lt;strong&gt;Feature selection provides marginal gains&lt;/strong&gt;: Automated selection (93/97 features) helped slightly, but regularization alone achieved comparable results. This suggests most features contain useful signal.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;&lt;strong&gt;SGD introduces variance&lt;/strong&gt;: Due to stochastic optimization, SGD performed slightly worse but is much more scalable for massive datasets.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;&lt;strong&gt;Pure penalties beat hybrid&lt;/strong&gt;: Elastic Net didn&amp;#x27;t outperform pure L1 or L2, indicating this dataset responds better to one extreme than a middle ground.&lt;/p&gt;&lt;/li&gt;&lt;li&gt;&lt;p&gt;&lt;strong&gt;Always standardize for SGD&lt;/strong&gt;: SGDRegressor converges poorly without feature scaling. Ridge/Lasso handle different scales better but still benefit from standardization.&lt;/p&gt;&lt;/li&gt;&lt;/ol&gt;&lt;h2&gt;Practical Takeaways&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;When choosing a regression approach&lt;/strong&gt;:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Start with &lt;strong&gt;Lasso&lt;/strong&gt; for high-dimensional data it&amp;#x27;s fast and performs automatic feature selection&lt;/li&gt;&lt;li&gt;Use &lt;strong&gt;Ridge&lt;/strong&gt; when you believe all features contribute but need shrinkage&lt;/li&gt;&lt;li&gt;Try &lt;strong&gt;Elastic Net&lt;/strong&gt; when features are highly correlated (not the case here)&lt;/li&gt;&lt;li&gt;Use &lt;strong&gt;SGDRegressor&lt;/strong&gt; only for datasets too large for memory (millions of samples)&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;strong&gt;For hyperparameter tuning&lt;/strong&gt;:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Always use cross-validation, never optimize on test data&lt;/li&gt;&lt;li&gt;Plot training vs. CV error to visualize bias-variance tradeoff&lt;/li&gt;&lt;li&gt;Use logarithmic spacing for alpha values (they span orders of magnitude)&lt;/li&gt;&lt;li&gt;Grid search is expensive consider random search for large parameter spaces&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;strong&gt;Data preprocessing matters&lt;/strong&gt;:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Check data types, not just &lt;code&gt;.isna()&lt;/code&gt; missing values might be encoded as strings&lt;/li&gt;&lt;li&gt;Impute missing values using training statistics only&lt;/li&gt;&lt;li&gt;Standardize features for gradient-based optimizers&lt;/li&gt;&lt;li&gt;Use pipelines to prevent data leakage&lt;/li&gt;&lt;/ul&gt;&lt;h2&gt;Conclusion&lt;/h2&gt;&lt;p&gt;This project demonstrated that violent crime rates can be predicted with reasonable accuracy (RMSE ~0.14) from socioeconomic features. Lasso regression emerged as the winner by leveraging L1 regularization&amp;#x27;s implicit feature selection.&lt;/p&gt;&lt;p&gt;The real insight came from comparing multiple approaches systematically. Each technique revealed something about the data structure feature selection showed that 93 of 97 features are informative, Ridge highlighted the importance of coefficient shrinkage, and Lasso proved that sparse solutions can outperform dense ones.&lt;/p&gt;&lt;p&gt;Understanding these techniques deeply not just using them as black boxes enables making informed modeling decisions. When you see the bias-variance tradeoff visualized, when you understand why cosine similarity works better than Euclidean distance for text, when you know why SGD needs standardization you become a better machine learning practitioner.&lt;/p&gt;&lt;p&gt;The ability to predict crime rates from socioeconomic factors has real-world implications. Communities can identify risk factors, allocate prevention resources effectively, and make data-driven policy decisions. That&amp;#x27;s the power of applied machine learning.&lt;/p&gt;&lt;hr/&gt;&lt;h2&gt;📓 Jupyter Notebook&lt;/h2&gt;&lt;p&gt;Want to explore the complete code and run it yourself? Access the full Jupyter notebook with detailed implementations and visualizations:&lt;/p&gt;&lt;p&gt;&lt;strong&gt;&lt;a href=&quot;https://github.com/joneshshrestha/machine-learning-python/blob/main/Regression%20Analysis/regression-analysis.ipynb&quot;&gt;→ View Notebook on GitHub&lt;/a&gt;&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;You can also run it interactively:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;a href=&quot;https://colab.research.google.com/github/joneshshrestha/machine-learning-python/blob/main/Regression%20Analysis/regression-analysis.ipynb&quot;&gt;Open in Google Colab&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href=&quot;https://mybinder.org/v2/gh/joneshshrestha/machine-learning-python/main?filepath=Regression%20Analysis/regression-analysis.ipynb&quot;&gt;Open in Binder&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;</content:encoded></item><item><title><![CDATA[Getting Started with HBase: A Hands-On Guide to NoSQL Data Storage]]></title><description><![CDATA[TL;DR Deployed HBase NoSQL database using Docker Compose with Master, RegionServer, and Zookeeper components. Demonstrated column-oriented…]]></description><link>https://joneshshrestha.com/blog/22-hbase-hands-on-guide/</link><guid isPermaLink="false">https://joneshshrestha.com/blog/22-hbase-hands-on-guide/</guid><dc:creator><![CDATA[Jonesh Shrestha]]></dc:creator><pubDate>Tue, 28 Oct 2025 00:00:00 GMT</pubDate><content:encoded>&lt;div class=&quot;bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg&quot;&gt;&lt;h2&gt;TL;DR&lt;/h2&gt;&lt;p&gt;Deployed HBase NoSQL database using Docker Compose with Master, RegionServer, and Zookeeper components. Demonstrated column-oriented key-value storage operations including table creation, data insertion, scanning, and column family management. HBase excels at handling &lt;strong&gt;sparse data and real-time read/write operations&lt;/strong&gt; on HDFS, bypassing MapReduce for faster access. Practical tutorial covers Docker setup, HBase shell commands, data manipulation (put, get, scan, delete), and architecture understanding. Perfect for developers transitioning from relational databases to distributed NoSQL storage for big data applications.&lt;/p&gt;&lt;/div&gt;&lt;h2&gt;Introduction&lt;/h2&gt;&lt;p&gt;HBase is a powerful NoSQL database that runs on top of HDFS (Hadoop Distributed File System), offering scalable storage for massive datasets. Unlike traditional relational databases, HBase is a column-oriented key-value store that excels at handling sparse data and real-time read/write operations. In this tutorial, I&amp;#x27;ll walk you through setting up HBase using Docker and demonstrate practical operations like creating tables, inserting data, and managing column families.&lt;/p&gt;&lt;h2&gt;Understanding HBase Architecture&lt;/h2&gt;&lt;p&gt;Before diving into the hands-on portion, let&amp;#x27;s understand how HBase works. The system consists of three main components:&lt;/p&gt;&lt;p&gt;&lt;img src=&quot;/img/Hbase-system.png&quot; alt=&quot;HBase System Architecture&quot;/&gt;&lt;/p&gt;&lt;p&gt;&lt;em&gt;HBase system architecture showing Master, Zookeeper, and RegionServer components. &lt;a href=&quot;https://blueskyareahm.medium.com/try-hbase-shell-with-docker-image-6547d93df4be&quot;&gt;Image reference&lt;/a&gt;&lt;/em&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;strong&gt;Master&lt;/strong&gt;: Manages metadata and coordinates RegionServers&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Zookeeper&lt;/strong&gt;: Coordinates the cluster and stores RegionServer information&lt;/li&gt;&lt;li&gt;&lt;strong&gt;RegionServer&lt;/strong&gt;: Communicates with clients and handles actual data storage&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;HBase bypasses the MapReduce engine, providing faster direct access to data stored in HDFS.&lt;/p&gt;&lt;h2&gt;Prerequisites&lt;/h2&gt;&lt;p&gt;Before we begin, you&amp;#x27;ll need Docker installed on your machine. You can verify your installation with:&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot;&gt;docker -v
 docker ps
 docker images
 &lt;/code&gt;&lt;/pre&gt;&lt;h2&gt;Setting Up HBase with Docker&lt;/h2&gt;&lt;h3&gt;Creating the Docker Compose File&lt;/h3&gt;&lt;p&gt;I&amp;#x27;ll use Docker to quickly spin up a complete HBase environment. Create a file called &lt;code&gt;docker-compose-hbase.yml&lt;/code&gt; with the following configuration:&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-yaml&quot;&gt;version: &amp;#x27;2&amp;#x27;
@@ -56,7 +575,7 @@ put &amp;#x27;employees&amp;#x27;, &amp;#x27;ID2&amp;#x27;, &amp;#x27;work:depar
 &lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;img src=&quot;/img/hbase-work-family.jpg&quot; alt=&quot;Work Family&quot;/&gt;&lt;/p&gt;&lt;p&gt;&lt;em&gt;Complete employee table with work information including positions and departments&lt;/em&gt;&lt;/p&gt;&lt;p&gt;That&amp;#x27;s a total of (3 new private columns + 1 new public column + 2 new work columns) × multiple values = 12 additional data points inserted!&lt;/p&gt;&lt;h3&gt;Modifying Table Schema&lt;/h3&gt;&lt;p&gt;To add a new column family to an existing table, you need to disable it first, alter the schema, then re-enable it:&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot;&gt;disable &amp;#x27;employees&amp;#x27;
 alter &amp;#x27;employees&amp;#x27;, &amp;#x27;work&amp;#x27;
 enable &amp;#x27;employees&amp;#x27;
-&lt;/code&gt;&lt;/pre&gt;&lt;h2&gt;Bonus: Understanding Data Compression&lt;/h2&gt;&lt;p&gt;Let&amp;#x27;s explore how different compression techniques affect storage size. Given the string: &lt;code&gt;QQQQZZZZZAAAAANNN&lt;/code&gt;, where each letter takes 1 byte (8 bits).&lt;/p&gt;&lt;h3&gt;Uncompressed Storage&lt;/h3&gt;&lt;p&gt;The string has 17 letters × 1 byte = &lt;strong&gt;17 bytes&lt;/strong&gt; or &lt;strong&gt;136 bits&lt;/strong&gt;.&lt;/p&gt;&lt;h3&gt;Run Length Encoding (RLE)&lt;/h3&gt;&lt;p&gt;RLE replaces repeated characters with the character and count (e.g., &lt;code&gt;QQQQ&lt;/code&gt; becomes &lt;code&gt;Q4&lt;/code&gt;):&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;code&gt;QQQQ&lt;/code&gt; → &lt;code&gt;Q4&lt;/code&gt; (2 bytes)&lt;/li&gt;&lt;li&gt;&lt;code&gt;ZZZZZ&lt;/code&gt; → &lt;code&gt;Z5&lt;/code&gt; (2 bytes)&lt;/li&gt;&lt;li&gt;&lt;code&gt;AAAAA&lt;/code&gt; → &lt;code&gt;A5&lt;/code&gt; (2 bytes)&lt;/li&gt;&lt;li&gt;&lt;code&gt;NNN&lt;/code&gt; → &lt;code&gt;N3&lt;/code&gt; (2 bytes)&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;strong&gt;RLE-compressed size = 8 bytes = 64 bits&lt;/strong&gt; (52.9% of original!)&lt;/p&gt;&lt;h3&gt;Dictionary Compression&lt;/h3&gt;&lt;p&gt;Using a 5-bit code for each letter:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Dictionary: 4 unique letters (Q, Z, A, N) × 5 bits = 20 bits overhead&lt;/li&gt;&lt;li&gt;Encoded string: 17 characters × 5 bits = &lt;strong&gt;85 bits&lt;/strong&gt; (without dictionary overhead)&lt;/li&gt;&lt;/ul&gt;&lt;h3&gt;When RLE Fails&lt;/h3&gt;&lt;p&gt;Consider the string &lt;code&gt;QQBQQZZUZZAANNA&lt;/code&gt; (15 characters, 15 bytes uncompressed):&lt;/p&gt;&lt;p&gt;&lt;strong&gt;RLE breakdown:&lt;/strong&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;code&gt;QQ&lt;/code&gt; → &lt;code&gt;Q2&lt;/code&gt;, &lt;code&gt;B&lt;/code&gt; → &lt;code&gt;B1&lt;/code&gt;, &lt;code&gt;QQ&lt;/code&gt; → &lt;code&gt;Q2&lt;/code&gt;, &lt;code&gt;ZZ&lt;/code&gt; → &lt;code&gt;Z2&lt;/code&gt;, &lt;code&gt;U&lt;/code&gt; → &lt;code&gt;U1&lt;/code&gt;, &lt;code&gt;ZZ&lt;/code&gt; → &lt;code&gt;Z2&lt;/code&gt;, &lt;code&gt;AA&lt;/code&gt; → &lt;code&gt;A2&lt;/code&gt;, &lt;code&gt;NN&lt;/code&gt; → &lt;code&gt;N2&lt;/code&gt;, &lt;code&gt;A&lt;/code&gt; → &lt;code&gt;A1&lt;/code&gt;&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;strong&gt;RLE-compressed size = 18 bytes = 144 bits&lt;/strong&gt; - larger than the original!&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Dictionary compression:&lt;/strong&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Dictionary: 6 unique letters (Q, B, Z, U, A, N) × 5 bits = 30 bits overhead&lt;/li&gt;&lt;li&gt;Encoded string: 15 characters × 5 bits = &lt;strong&gt;75 bits&lt;/strong&gt; (still better!)&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;strong&gt;Key Takeaway&lt;/strong&gt;: RLE works well with long runs but can actually increase size when runs are short. Dictionary-based compression maintains consistent performance regardless of run length, making it more reliable for varied data patterns.&lt;/p&gt;&lt;h2&gt;Conclusion&lt;/h2&gt;&lt;p&gt;HBase provides a flexible, scalable solution for storing and accessing large amounts of sparse data. Through Docker, we can quickly set up a development environment to experiment with column families, data insertion, and schema modifications. The key advantage of HBase is its ability to scale horizontally and handle massive datasets efficiently - something traditional relational databases struggle with.&lt;/p&gt;&lt;p&gt;Understanding compression techniques also helps optimize storage, especially when dealing with big data scenarios where every byte counts.&lt;/p&gt;&lt;hr/&gt;&lt;p&gt;&lt;strong&gt;Interactive Notebooks &amp;amp; Resources&lt;/strong&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;View my complete HBase project on GitHub: &lt;a href=&quot;https://github.com/joneshshrestha/data-mining/tree/main/hbase&quot;&gt;HBase Implementation&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;&lt;hr/&gt;&lt;p&gt;&lt;strong&gt;References&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;This tutorial was inspired by &lt;a href=&quot;https://blueskyareahm.medium.com/try-hbase-shell-with-docker-image-6547d93df4be&quot;&gt;Blue Marble&amp;#x27;s excellent HBase Docker guide&lt;/a&gt;, which provided the foundation for the Docker setup approach.&lt;/p&gt;</content:encoded></item><item><title><![CDATA[Distributed Movie Recommendation System Using MapReduce on AWS EMR]]></title><description><![CDATA[Overview Built a distributed movie recommendation engine using MapReduce (mrjob 0.6.12) on AWS EMR, processing 1 million ratings from the…]]></description><link>https://joneshshrestha.com/blog/21-mapreduce-movie-recommendations/</link><guid isPermaLink="false">https://joneshshrestha.com/blog/21-mapreduce-movie-recommendations/</guid><dc:creator><![CDATA[Jonesh Shrestha]]></dc:creator><pubDate>Wed, 22 Oct 2025 00:00:00 GMT</pubDate><content:encoded>&lt;h2&gt;Overview&lt;/h2&gt;&lt;p&gt;Built a distributed movie recommendation engine using MapReduce (mrjob 0.6.12) on AWS EMR, processing 1 million ratings from the MovieLens dataset. Computed cosine similarity scores between movie pairs across variable-sized clusters (4 and 8 nodes). The 8-node cluster achieved 18 minutes 2 seconds wall time vs 31 minutes 8 seconds on 4 nodes, demonstrating 1.79x speedup. Analysis reveals consistent ~1.5 minute job submission overhead and sub-linear scaling due to communication costs and load imbalances inherent in distributed computing.&lt;/p&gt;&lt;p&gt;Recommendation systems power modern streaming platforms, e-commerce sites, and social media feeds. In this project, I implemented a collaborative filtering approach using MapReduce to compute movie similarities based on user ratings. The system leverages cosine similarity to identify movies with similar rating patterns, enabling recommendations of the form &amp;quot;users who liked Movie A also liked Movie B.&amp;quot;&lt;/p&gt;&lt;p&gt;The implementation uses mrjob, a Python library for writing MapReduce jobs, deployed on Amazon EMR (Elastic MapReduce) to demonstrate horizontal scalability and distributed computing principles.&lt;/p&gt;&lt;hr/&gt;&lt;div style=&quot;padding:1rem;background-color:rgba(59, 130, 246, 0.1);border:1px solid rgba(59, 130, 246, 0.3);border-radius:0.5rem;margin-bottom:1.5rem&quot;&gt;&lt;div style=&quot;font-weight:600;margin-bottom:0.5rem;color:rgb(59, 130, 246)&quot;&gt;📓 View Complete Implementation&lt;/div&gt;&lt;div style=&quot;display:flex;gap:0.75rem;flex-wrap:wrap&quot;&gt;&lt;a href=&quot;https://github.com/joneshshrestha/data-mining/tree/main/mr-job&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot; style=&quot;display:inline-flex;align-items:center;gap:0.5rem;padding:0.5rem 1rem;background-color:#24292e;color:white;border-radius:0.375rem;text-decoration:none;font-size:0.875rem;font-weight:500;transition:all 0.2s&quot;&gt;&lt;svg style=&quot;width:1rem;height:1rem&quot; fill=&quot;currentColor&quot; viewBox=&quot;0 0 16 16&quot;&gt;&lt;path d=&quot;M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;GitHub Repository&lt;/a&gt;&lt;/div&gt;&lt;/div&gt;&lt;hr/&gt;&lt;h2&gt;Dataset&lt;/h2&gt;&lt;p&gt;I used the &lt;strong&gt;MovieLens 1M dataset&lt;/strong&gt; (&lt;code&gt;ml-1m&lt;/code&gt;) which contains:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;strong&gt;1,000,209 ratings&lt;/strong&gt; from 6,040 users on 3,706 movies&lt;/li&gt;&lt;li&gt;Rating scale: 1-5 stars&lt;/li&gt;&lt;li&gt;Data format: &lt;code&gt;userID::movieID::rating::timestamp&lt;/code&gt;&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;For local testing, the smaller &lt;strong&gt;MovieLens 100K dataset&lt;/strong&gt; (&lt;code&gt;ml-100k&lt;/code&gt;) is also supported with 100,000 ratings.&lt;/p&gt;&lt;h2&gt;Architecture &amp;amp; MapReduce Pipeline&lt;/h2&gt;&lt;p&gt;The system implements a &lt;strong&gt;three-stage MapReduce pipeline&lt;/strong&gt; to transform raw user ratings into movie similarity scores:&lt;/p&gt;&lt;h3&gt;Stage 1: Group Ratings by User&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;Mapper:&lt;/strong&gt; Parse input and emit &lt;code&gt;userID =&amp;gt; (movieID, rating)&lt;/code&gt;&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;def mapper_parse_input(self, key, line):
+&lt;/code&gt;&lt;/pre&gt;&lt;h2&gt;Bonus: Understanding Data Compression&lt;/h2&gt;&lt;p&gt;Let&amp;#x27;s explore how different compression techniques affect storage size. Given the string: &lt;code&gt;QQQQZZZZZAAAAANNN&lt;/code&gt;, where each letter takes 1 byte (8 bits).&lt;/p&gt;&lt;h3&gt;Uncompressed Storage&lt;/h3&gt;&lt;p&gt;The string has 17 letters × 1 byte = &lt;strong&gt;17 bytes&lt;/strong&gt; or &lt;strong&gt;136 bits&lt;/strong&gt;.&lt;/p&gt;&lt;h3&gt;Run Length Encoding (RLE)&lt;/h3&gt;&lt;p&gt;RLE replaces repeated characters with the character and count (e.g., &lt;code&gt;QQQQ&lt;/code&gt; becomes &lt;code&gt;Q4&lt;/code&gt;):&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;code&gt;QQQQ&lt;/code&gt; → &lt;code&gt;Q4&lt;/code&gt; (2 bytes)&lt;/li&gt;&lt;li&gt;&lt;code&gt;ZZZZZ&lt;/code&gt; → &lt;code&gt;Z5&lt;/code&gt; (2 bytes)&lt;/li&gt;&lt;li&gt;&lt;code&gt;AAAAA&lt;/code&gt; → &lt;code&gt;A5&lt;/code&gt; (2 bytes)&lt;/li&gt;&lt;li&gt;&lt;code&gt;NNN&lt;/code&gt; → &lt;code&gt;N3&lt;/code&gt; (2 bytes)&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;strong&gt;RLE-compressed size = 8 bytes = 64 bits&lt;/strong&gt; (52.9% of original!)&lt;/p&gt;&lt;h3&gt;Dictionary Compression&lt;/h3&gt;&lt;p&gt;Using a 5-bit code for each letter:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Dictionary: 4 unique letters (Q, Z, A, N) × 5 bits = 20 bits overhead&lt;/li&gt;&lt;li&gt;Encoded string: 17 characters × 5 bits = &lt;strong&gt;85 bits&lt;/strong&gt; (without dictionary overhead)&lt;/li&gt;&lt;/ul&gt;&lt;h3&gt;When RLE Fails&lt;/h3&gt;&lt;p&gt;Consider the string &lt;code&gt;QQBQQZZUZZAANNA&lt;/code&gt; (15 characters, 15 bytes uncompressed):&lt;/p&gt;&lt;p&gt;&lt;strong&gt;RLE breakdown:&lt;/strong&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;code&gt;QQ&lt;/code&gt; → &lt;code&gt;Q2&lt;/code&gt;, &lt;code&gt;B&lt;/code&gt; → &lt;code&gt;B1&lt;/code&gt;, &lt;code&gt;QQ&lt;/code&gt; → &lt;code&gt;Q2&lt;/code&gt;, &lt;code&gt;ZZ&lt;/code&gt; → &lt;code&gt;Z2&lt;/code&gt;, &lt;code&gt;U&lt;/code&gt; → &lt;code&gt;U1&lt;/code&gt;, &lt;code&gt;ZZ&lt;/code&gt; → &lt;code&gt;Z2&lt;/code&gt;, &lt;code&gt;AA&lt;/code&gt; → &lt;code&gt;A2&lt;/code&gt;, &lt;code&gt;NN&lt;/code&gt; → &lt;code&gt;N2&lt;/code&gt;, &lt;code&gt;A&lt;/code&gt; → &lt;code&gt;A1&lt;/code&gt;&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;strong&gt;RLE-compressed size = 18 bytes = 144 bits&lt;/strong&gt; - larger than the original!&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Dictionary compression:&lt;/strong&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Dictionary: 6 unique letters (Q, B, Z, U, A, N) × 5 bits = 30 bits overhead&lt;/li&gt;&lt;li&gt;Encoded string: 15 characters × 5 bits = &lt;strong&gt;75 bits&lt;/strong&gt; (still better!)&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;strong&gt;Key Takeaway&lt;/strong&gt;: RLE works well with long runs but can actually increase size when runs are short. Dictionary-based compression maintains consistent performance regardless of run length, making it more reliable for varied data patterns.&lt;/p&gt;&lt;h2&gt;Conclusion&lt;/h2&gt;&lt;p&gt;HBase provides a flexible, scalable solution for storing and accessing large amounts of sparse data. Through Docker, we can quickly set up a development environment to experiment with column families, data insertion, and schema modifications. The key advantage of HBase is its ability to scale horizontally and handle massive datasets efficiently - something traditional relational databases struggle with.&lt;/p&gt;&lt;p&gt;Understanding compression techniques also helps optimize storage, especially when dealing with big data scenarios where every byte counts.&lt;/p&gt;&lt;hr/&gt;&lt;p&gt;&lt;strong&gt;Interactive Notebooks &amp;amp; Resources&lt;/strong&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;View my complete HBase project on GitHub: &lt;a href=&quot;https://github.com/joneshshrestha/data-mining/tree/main/hbase&quot;&gt;HBase Implementation&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;&lt;hr/&gt;&lt;p&gt;&lt;strong&gt;References&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;This tutorial was inspired by &lt;a href=&quot;https://blueskyareahm.medium.com/try-hbase-shell-with-docker-image-6547d93df4be&quot;&gt;Blue Marble&amp;#x27;s excellent HBase Docker guide&lt;/a&gt;, which provided the foundation for the Docker setup approach.&lt;/p&gt;</content:encoded></item><item><title><![CDATA[Distributed Movie Recommendation System Using MapReduce on AWS EMR]]></title><description><![CDATA[TL;DR Built a distributed movie recommendation engine using MapReduce (mrjob 0.6.12) on AWS EMR, processing 1 million ratings from the…]]></description><link>https://joneshshrestha.com/blog/21-mapreduce-movie-recommendations/</link><guid isPermaLink="false">https://joneshshrestha.com/blog/21-mapreduce-movie-recommendations/</guid><dc:creator><![CDATA[Jonesh Shrestha]]></dc:creator><pubDate>Wed, 22 Oct 2025 00:00:00 GMT</pubDate><content:encoded>&lt;div class=&quot;bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg&quot;&gt;&lt;h2&gt;TL;DR&lt;/h2&gt;&lt;p&gt;Built a distributed movie recommendation engine using MapReduce (mrjob 0.6.12) on AWS EMR, processing 1 million ratings from the MovieLens dataset. Computed cosine similarity scores between movie pairs across variable-sized clusters (4 and 8 nodes). The 8-node cluster achieved &lt;strong&gt;18 minutes 2 seconds&lt;/strong&gt; wall time vs 31 minutes 8 seconds on 4 nodes, demonstrating 1.79x speedup. Analysis reveals consistent ~1.5 minute job submission overhead and sub-linear scaling due to communication costs and load imbalances inherent in distributed computing. Demonstrates collaborative filtering, three-stage MapReduce pipeline, and horizontal scalability principles in production-grade recommendation systems.&lt;/p&gt;&lt;/div&gt;&lt;h2&gt;Introduction&lt;/h2&gt;&lt;p&gt;Recommendation systems power modern streaming platforms, e-commerce sites, and social media feeds. In this project, I implemented a collaborative filtering approach using MapReduce to compute movie similarities based on user ratings. The system leverages cosine similarity to identify movies with similar rating patterns, enabling recommendations of the form &amp;quot;users who liked Movie A also liked Movie B.&amp;quot;&lt;/p&gt;&lt;p&gt;The implementation uses mrjob, a Python library for writing MapReduce jobs, deployed on Amazon EMR (Elastic MapReduce) to demonstrate horizontal scalability and distributed computing principles.&lt;/p&gt;&lt;hr/&gt;&lt;div style=&quot;padding:1rem;background-color:rgba(59, 130, 246, 0.1);border:1px solid rgba(59, 130, 246, 0.3);border-radius:0.5rem;margin-bottom:1.5rem&quot;&gt;&lt;div style=&quot;font-weight:600;margin-bottom:0.5rem;color:rgb(59, 130, 246)&quot;&gt;📓 View Complete Implementation&lt;/div&gt;&lt;div style=&quot;display:flex;gap:0.75rem;flex-wrap:wrap&quot;&gt;&lt;a href=&quot;https://github.com/joneshshrestha/data-mining/tree/main/mr-job&quot; target=&quot;_blank&quot; rel=&quot;noopener noreferrer&quot; style=&quot;display:inline-flex;align-items:center;gap:0.5rem;padding:0.5rem 1rem;background-color:#24292e;color:white;border-radius:0.375rem;text-decoration:none;font-size:0.875rem;font-weight:500;transition:all 0.2s&quot;&gt;&lt;svg style=&quot;width:1rem;height:1rem&quot; fill=&quot;currentColor&quot; viewBox=&quot;0 0 16 16&quot;&gt;&lt;path d=&quot;M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;GitHub Repository&lt;/a&gt;&lt;/div&gt;&lt;/div&gt;&lt;hr/&gt;&lt;h2&gt;Dataset&lt;/h2&gt;&lt;p&gt;I used the &lt;strong&gt;MovieLens 1M dataset&lt;/strong&gt; (&lt;code&gt;ml-1m&lt;/code&gt;) which contains:&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;strong&gt;1,000,209 ratings&lt;/strong&gt; from 6,040 users on 3,706 movies&lt;/li&gt;&lt;li&gt;Rating scale: 1-5 stars&lt;/li&gt;&lt;li&gt;Data format: &lt;code&gt;userID::movieID::rating::timestamp&lt;/code&gt;&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;For local testing, the smaller &lt;strong&gt;MovieLens 100K dataset&lt;/strong&gt; (&lt;code&gt;ml-100k&lt;/code&gt;) is also supported with 100,000 ratings.&lt;/p&gt;&lt;h2&gt;Architecture &amp;amp; MapReduce Pipeline&lt;/h2&gt;&lt;p&gt;The system implements a &lt;strong&gt;three-stage MapReduce pipeline&lt;/strong&gt; to transform raw user ratings into movie similarity scores:&lt;/p&gt;&lt;h3&gt;Stage 1: Group Ratings by User&lt;/h3&gt;&lt;p&gt;&lt;strong&gt;Mapper:&lt;/strong&gt; Parse input and emit &lt;code&gt;userID =&amp;gt; (movieID, rating)&lt;/code&gt;&lt;/p&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot;&gt;def mapper_parse_input(self, key, line):
     # Outputs userID =&amp;gt; (movieID, rating)
     (userID, movieID, rating, timestamp) = line.split(&amp;quot;::&amp;quot;)
     yield userID, (movieID, float(rating))
