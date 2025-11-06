@@ -24,14 +24,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex items-center justify-between max-w-5xl mx-auto mt-2">
           <Link to="/" className="flex items-center">
             <img
-              src="/img/logo.jpg"
+              src="/img/logo.webp"
               alt="Profile"
               className="w-9 h-9 rounded-full object-cover mr-3"
-              onError={e => {
-                // Fallback for missing image
-                const target = e.target as HTMLImageElement;
-                target.src = '/img/placeholder.jpg';
-              }}
             />
             <h5 className="text-sm font-medium leading-tight">
               Jonesh Shrestha

@@ -1,0 +1,506 @@
+---
+title: 'Mastering NoSQL and Stream Processing: Cassandra CQL and Apache Storm Windows'
+date: '2025-11-03'
+author: 'Jonesh Shrestha'
+---
+
+<div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg">
+
+## TL;DR
+
+Explored Apache Cassandra's CQL query patterns and Apache Storm's windowing mechanisms for real-time stream processing. Demonstrated Cassandra's limitations with `ORDER BY` (only works on clustering columns, not regular columns) and `ALLOW FILTERING` usage for non-primary key queries. Compared **batch processing** (Hive: single average across all data) vs **tumbling windows** (Storm: non-overlapping 3-hour windows returning [12.67, 18.67, 22, 28]) vs **sliding windows** (Storm: overlapping windows with 2-hour slides returning [12.67, 17.67, 17, 22, 25.67]). **Bonus section** covers database selection strategies: when to choose relational databases, key-value stores, column-oriented stores, document stores, graph databases, or streaming engines based on data structure and access patterns.
+
+</div>
+
+## Introduction
+
+Modern data systems require choosing the right tool for the job. NoSQL databases like Cassandra excel at distributed storage with high availability, while streaming engines like Apache Storm process continuous data in real-time. Understanding their strengths, limitations, and query patterns is essential for building scalable data systems.
+
+In this tutorial, I'll walk you through practical Cassandra CQL queries, explore Apache Storm's windowing mechanisms (tumbling vs sliding), and demonstrate how to choose the right database for different scenarios. These concepts power everything from e-commerce platforms to real-time analytics dashboards.
+
+## Part 1: Apache Cassandra CQL Queries
+
+Cassandra is a distributed NoSQL database designed for high availability and linear scalability. Unlike traditional relational databases, Cassandra uses a partition key-based data model that requires careful query design.
+
+### The Bookstore Schema
+
+Let's work with a bookstore database:
+
+```sql
+CREATE TABLE bookstore.books (
+    book_id UUID PRIMARY KEY,
+    title TEXT,
+    author TEXT,
+    genre TEXT,
+    publication_year INT,
+    price DECIMAL
+);
+```
+
+**Key Points**:
+- `book_id` is the **partition key** (and the only primary key component)
+- All other columns are regular columns (not clustering columns)
+- This schema design has implications for what queries are efficient
+
+### Query 1: Retrieve Books Published in 2020
+
+**Task**: Get titles of all books published in 2020, sorted alphabetically.
+
+```sql
+SELECT title
+FROM bookstore.books
+WHERE publication_year = 2020
+ALLOW FILTERING
+ORDER BY title ASC;
+```
+
+#### Understanding ALLOW FILTERING
+
+`ALLOW FILTERING` tells Cassandra to scan all partitions to find matching rows. This is necessary because `publication_year` is not part of the primary key.
+
+**Why it's needed**: Cassandra is optimized for queries that specify the partition key. Without it, Cassandra doesn't know which partitions to read. `ALLOW FILTERING` forces a full table scan.
+
+**Performance implication**: This query is **slow** on large datasets because it reads every partition. For production systems, you'd denormalize data or use a secondary index.
+
+#### The ORDER BY Limitation
+
+**Critical Caveat**: `ORDER BY title ASC` **will not work** in standard Cassandra!
+
+**Why?** Cassandra only allows `ORDER BY` on **clustering columns**. In our schema:
+- `book_id` is the partition key
+- There are **no clustering columns**
+- `title` is just a regular column
+
+**Solution**: Fetch results without `ORDER BY` and sort in the application layer:
+
+```sql
+SELECT title
+FROM bookstore.books
+WHERE publication_year = 2020
+ALLOW FILTERING;
+```
+
+Then sort the results in your Python/Java/Node.js application.
+
+### Query 2: Fiction Books Under $20
+
+**Task**: Get titles and authors of Fiction books priced ≤ $20, sorted by publication year descending.
+
+```sql
+SELECT title, author
+FROM bookstore.books
+WHERE genre = 'Fiction' AND price <= 20.00
+ALLOW FILTERING
+ORDER BY publication_year DESC;
+```
+
+#### Multiple Filter Conditions
+
+Cassandra supports multiple `WHERE` conditions with `ALLOW FILTERING`, but:
+
+1. **All conditions trigger full table scans** (no partition key specified)
+2. **AND conditions are evaluated together** (both must be true)
+3. **Performance degrades** as table size grows
+
+#### The Same ORDER BY Problem
+
+Again, `ORDER BY publication_year DESC` **will not work** because `publication_year` is not a clustering column.
+
+**Correct approach**:
+
+```sql
+SELECT title, author
+FROM bookstore.books
+WHERE genre = 'Fiction' AND price <= 20.00
+ALLOW FILTERING;
+```
+
+Sort by `publication_year` in your application after fetching results.
+
+### Query 3: Update Book Price by Title
+
+**Task**: Update "The Great Gatsby" price to $25.00.
+
+#### The Two-Step Process
+
+Since `title` is not the primary key, we can't update directly by title. We need a two-step process:
+
+**Step 1**: Find the `book_id`:
+
+```sql
+SELECT book_id
+FROM bookstore.books
+WHERE title = 'The Great Gatsby'
+ALLOW FILTERING;
+```
+
+This returns the UUID, for example: `550e8400-e29b-41d4-a716-446655440000`
+
+**Step 2**: Update using the `book_id`:
+
+```sql
+UPDATE bookstore.books
+SET price = 25.00
+WHERE book_id = 550e8400-e29b-41d4-a716-446655440000;
+```
+
+#### Why This Design?
+
+Cassandra's data model is optimized for **partition key-based access**. Updates and deletes require the partition key to identify which node stores the data.
+
+**Lesson**: Schema design in Cassandra must align with your query patterns. If you frequently query by title, consider:
+
+1. **Denormalization**: Create a separate table with `title` as partition key
+2. **Secondary Index**: Create an index on `title` (with performance trade-offs)
+3. **Materialized View**: Automatically maintain a view with different primary key
+
+### Key Cassandra Takeaways
+
+1. **Partition Key is King**: Queries without partition keys require `ALLOW FILTERING` and are slow
+
+2. **ORDER BY Restrictions**: Only works on clustering columns, not regular columns
+
+3. **No Joins**: Cassandra doesn't support joins denormalize data instead
+
+4. **Schema Design Matters**: Design your schema based on query patterns, not just data structure
+
+5. **Trade-offs**: Cassandra prioritizes availability and partition tolerance over consistency (AP in CAP theorem)
+
+## Part 2: Apache Storm Stream Processing
+
+Apache Storm is a distributed real-time computation system for processing unbounded streams of data. Unlike batch processing (Hive, Spark), Storm processes data as it arrives, enabling real-time analytics.
+
+### The Dataset
+
+We have hourly price data:
+
+```
+[(1pm, $6), (2pm, $15), (3pm, $17), (4pm, $26), (5pm, $10), 
+ (6pm, $20), (7pm, $21), (8pm, $22), (9pm, $23), (10pm, $28), 
+ (11pm, $26), (12am, $30)]
+```
+
+Let's compare three approaches: batch processing, tumbling windows, and sliding windows.
+
+### Approach 1: Batch Processing with Hive
+
+**Query**: "Compute average price"
+
+**Result**: A **single value** the average across all data points.
+
+```
+(6 + 15 + 17 + 26 + 10 + 20 + 21 + 22 + 23 + 28 + 26 + 30) / 12 = 244 / 12 = $20.33
+```
+
+**Output**: `20.33`
+
+#### Characteristics of Batch Processing
+
+- **Processes all data at once** (not real-time)
+- **Single result** for the entire dataset
+- **High latency** (must wait for all data to arrive)
+- **Good for historical analysis**, not real-time decisions
+
+**Use cases**: Daily reports, monthly aggregations, historical trend analysis
+
+### Approach 2: Tumbling Windows (Non-Overlapping)
+
+**Query**: "Compute average price per each 3-hour window"
+
+**Window Definition**: Non-overlapping 3-hour windows
+- Window 1: [1pm-4pm)
+- Window 2: [4pm-7pm)
+- Window 3: [7pm-10pm)
+- Window 4: [10pm-1am)
+
+**Note**: `[1pm-4pm)` means **inclusive of 1pm, exclusive of 4pm** (includes 1pm, 2pm, 3pm but not 4pm).
+
+#### Calculations
+
+**Window 1** [1pm-4pm):
+```
+(6 + 15 + 17) / 3 = 38 / 3 = $12.67
+```
+
+**Window 2** [4pm-7pm):
+```
+(26 + 10 + 20) / 3 = 56 / 3 = $18.67
+```
+
+**Window 3** [7pm-10pm):
+```
+(21 + 22 + 23) / 3 = 66 / 3 = $22.00
+```
+
+**Window 4** [10pm-1am):
+```
+(28 + 26 + 30) / 3 = 84 / 3 = $28.00
+```
+
+**Output**: `[12.67, 18.67, 22.00, 28.00]`
+
+#### Characteristics of Tumbling Windows
+
+- **Non-overlapping**: Each data point belongs to exactly one window
+- **Fixed size**: All windows are the same duration (3 hours)
+- **Multiple outputs**: One result per window
+- **Lower latency**: Results available as each window completes
+- **No data duplication**: Each event processed once
+
+**Use cases**: Hourly metrics, daily summaries, session-based analytics
+
+### Approach 3: Sliding Windows (Overlapping)
+
+**Query**: "Compute average price per each 3-hour window, moving forward 2 hours each time"
+
+**Window Definition**: Overlapping 3-hour windows with 2-hour slides
+- Window 1: [1pm-4pm)
+- Window 2: [3pm-6pm)
+- Window 3: [5pm-8pm)
+- Window 4: [7pm-10pm)
+- Window 5: [9pm-12am)
+- Window 6: [11pm-2am) ← **Incomplete, no output**
+
+#### Calculations
+
+**Window 1** [1pm-4pm):
+```
+(6 + 15 + 17) / 3 = 38 / 3 = $12.67
+```
+
+**Window 2** [3pm-6pm):
+```
+(17 + 26 + 10) / 3 = 53 / 3 = $17.67
+```
+
+**Window 3** [5pm-8pm):
+```
+(10 + 20 + 21) / 3 = 51 / 3 = $17.00
+```
+
+**Window 4** [7pm-10pm):
+```
+(21 + 22 + 23) / 3 = 66 / 3 = $22.00
+```
+
+**Window 5** [9pm-12am):
+```
+(23 + 28 + 26) / 3 = 77 / 3 = $25.67
+```
+
+**Window 6** [11pm-2am):
+```
+(26 + 30 + ???) / 3 = incomplete
+```
+
+**No output for Window 6** because Storm doesn't have a full window yet. It waits until the window fills with data before outputting a result.
+
+**Output**: `[12.67, 17.67, 17.00, 22.00, 25.67]`
+
+#### Characteristics of Sliding Windows
+
+- **Overlapping**: Data points appear in multiple windows
+- **Fixed size, variable slide**: Window size is 3 hours, slide is 2 hours
+- **More frequent updates**: Results every 2 hours (vs 3 hours for tumbling)
+- **Smoother trends**: Overlapping reduces sudden changes between windows
+- **Higher computation cost**: Each event processed multiple times
+
+**Use cases**: Moving averages, trend detection, anomaly detection, real-time dashboards
+
+### Comparing the Three Approaches
+
+| Aspect | Batch (Hive) | Tumbling Windows | Sliding Windows |
+|--------|--------------|------------------|-----------------|
+| **Outputs** | 1 | 4 | 5 |
+| **Latency** | High (wait for all data) | Medium (per window) | Medium (per slide) |
+| **Data Reuse** | All data once | No overlap | Overlap |
+| **Update Frequency** | Once | Every 3 hours | Every 2 hours |
+| **Computation Cost** | Low | Medium | High |
+| **Use Case** | Historical analysis | Periodic summaries | Real-time trends |
+
+### When to Use Each Windowing Strategy
+
+**Use Tumbling Windows when**:
+- You need non-overlapping time periods (hourly/daily metrics)
+- Each event should be counted exactly once
+- You want lower computational overhead
+- Examples: Daily sales totals, hourly traffic counts
+
+**Use Sliding Windows when**:
+- You need smooth, continuous metrics
+- You want to detect trends or anomalies quickly
+- You can afford the extra computation
+- Examples: Moving averages, real-time dashboards, anomaly detection
+
+**Use Batch Processing when**:
+- Real-time results aren't needed
+- You're analyzing historical data
+- You want simplicity and lower infrastructure costs
+- Examples: Monthly reports, data warehousing, ML model training
+
+## Key Storm Concepts
+
+### 1. Window Completeness
+
+Storm **only outputs results for complete windows**. If a window hasn't received all expected data, no result is produced. This ensures accuracy but can delay results if data arrives late.
+
+### 2. Event Time vs Processing Time
+
+- **Event Time**: When the event actually occurred (1pm, 2pm, etc.)
+- **Processing Time**: When Storm processes the event
+
+Storm can window based on either. Event time is more accurate but requires handling late-arriving data.
+
+### 3. Watermarks
+
+For event-time windowing, Storm uses **watermarks** to determine when a window is complete. A watermark says "all events before this time have arrived." This handles out-of-order data.
+
+### 4. State Management
+
+Sliding windows require maintaining state across multiple windows. Storm's state management ensures this state is fault-tolerant and distributed.
+
+---
+
+## 🎁 Bonus: Choosing the Right Database
+
+Selecting the appropriate database or data processing system is crucial for system performance and scalability. Here's a guide for different scenarios:
+
+### Scenario A: Highly Structured Multi-Table Data with Constraints
+
+**Answer**: **Relational Database** (PostgreSQL, MySQL, Oracle)
+
+**Why?**
+
+- **Structured schemas**: Tables with defined columns and data types
+- **Foreign keys**: Connect multiple tables with referential integrity
+- **Constraints**: Enforce data validity (NOT NULL, CHECK, UNIQUE)
+- **ACID properties**: Ensure data consistency and transaction safety
+- **SQL**: Powerful query language with joins, aggregations, subqueries
+
+**Examples**: Banking systems, e-commerce orders, inventory management, ERP systems
+
+### Scenario B: Stock Market Data with Real-Time Decisions
+
+**Answer**: **Streaming Engine** (Apache Storm, Apache Flink, Apache Kafka Streams)
+
+**Why?**
+
+- **Real-time ingestion**: Process data as it arrives (millisecond latency)
+- **Low-latency processing**: Make decisions on live data streams
+- **Continuous queries**: Compute running aggregations, detect patterns
+- **Event-driven**: Trigger actions based on incoming data
+- **Scalability**: Handle millions of events per second
+
+**Examples**: Stock trading platforms, fraud detection, IoT sensor monitoring, real-time recommendations
+
+### Scenario C: LinkedIn-Type Data with Interconnected Nodes
+
+**Answer**: **Graph Database** (Neo4j, Amazon Neptune, JanusGraph)
+
+**Why?**
+
+- **Natural representation**: Nodes (people) and edges (connections)
+- **Efficient traversals**: Find friends-of-friends, shortest paths, communities
+- **Relationship-centric**: Information resides in connections, not just nodes
+- **Pattern matching**: Discover complex relationship patterns
+- **Query language**: Cypher (Neo4j) or Gremlin for graph queries
+
+**Examples**: Social networks, recommendation engines, fraud detection networks, knowledge graphs
+
+### Scenario D: Image Storage with Filename Lookup
+
+**Answer**: **Document-Oriented Store** (MongoDB, Couchbase) or **Object Storage** (Amazon S3, MinIO)
+
+**Why?**
+
+- **Binary large objects (BLOBs)**: Store images, videos, documents
+- **Metadata**: Associate filenames, tags, descriptions with files
+- **Flexible schema**: Different images can have different metadata
+- **Scalability**: Handle petabytes of unstructured data
+- **Content delivery**: Integrate with CDNs for fast access
+
+**Examples**: Photo sharing platforms, content management systems, video streaming, document repositories
+
+### Scenario E: Collection of JSON Objects (Tweets)
+
+**Answer**: **Key-Value Store** (Redis, DynamoDB) or **Document Store** (MongoDB)
+
+**Why?**
+
+- **Schema flexibility**: Each tweet can have different fields
+- **Fast lookups**: Retrieve tweets by tweet ID (key)
+- **Simple operations**: Get, put, delete by key
+- **Horizontal scaling**: Distribute across many nodes
+- **High throughput**: Handle millions of reads/writes per second
+
+**Examples**: Caching layers, session storage, user profiles, real-time analytics
+
+### Scenario F: Large Sparse Tables Continuously Growing
+
+**Answer**: **Column-Oriented Store** (Apache Cassandra, HBase, Google Bigtable)
+
+**Why?**
+
+- **Sparse data**: Many columns, but most cells are empty (efficient storage)
+- **Wide rows**: Millions of columns per row
+- **Append-optimized**: Efficient for continuous writes
+- **Horizontal scaling**: Add nodes to increase capacity
+- **Time-series data**: Natural fit for sensor data, logs, metrics
+
+**Examples**: Time-series databases, IoT data storage, log aggregation, sensor networks, analytics platforms
+
+## Database Selection Decision Tree
+
+```
+Is data highly structured with relationships?
+├─ Yes → Relational Database
+└─ No → Continue
+
+Is data arriving continuously in real-time?
+├─ Yes → Streaming Engine
+└─ No → Continue
+
+Is data primarily about relationships/connections?
+├─ Yes → Graph Database
+└─ No → Continue
+
+Is data large binary objects (images, videos)?
+├─ Yes → Document Store or Object Storage
+└─ No → Continue
+
+Is data JSON/document-based with flexible schema?
+├─ Yes → Document Store or Key-Value Store
+└─ No → Continue
+
+Is data sparse with many columns, continuously growing?
+├─ Yes → Column-Oriented Store
+└─ No → Reevaluate requirements
+```
+
+## Conclusion
+
+This tutorial explored two critical technologies in modern data systems: Apache Cassandra for distributed NoSQL storage and Apache Storm for real-time stream processing.
+
+**Cassandra Lessons**:
+- Schema design must align with query patterns
+- `ORDER BY` only works on clustering columns
+- `ALLOW FILTERING` enables flexible queries but at a performance cost
+- Updates require partition keys denormalization is often necessary
+
+**Storm Lessons**:
+- Tumbling windows provide non-overlapping periodic summaries
+- Sliding windows enable smooth, continuous metrics with overlapping data
+- Window completeness ensures accuracy but may delay results
+- Choosing between batch and stream processing depends on latency requirements
+
+**Database Selection**:
+- Relational databases for structured, transactional data
+- Streaming engines for real-time, continuous data processing
+- Graph databases for highly interconnected data
+- Document/key-value stores for flexible, schema-less data
+- Column-oriented stores for sparse, wide, growing tables
+
+Understanding these systems deeply not just using them as black boxes enables building scalable, efficient data architectures. When you know why Cassandra restricts `ORDER BY`, when you understand the trade-offs between tumbling and sliding windows, when you can choose the right database for your use case you become a better data engineer.
+
+The modern data landscape offers many specialized tools. Success comes from understanding their strengths, limitations, and appropriate use cases. There's no one-size-fits-all solution only the right tool for each specific job.
+

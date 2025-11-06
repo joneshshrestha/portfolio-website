@@ -15,7 +15,7 @@ const featuredProjects = [
     title: 'Binary Classification ML Pipeline',
     description:
       'Complete ML pipeline with cross-validation, grid search, and 77.5% test accuracy.',
-    image: '/img/binary-classification.jpg',
+    image: '/img/binary-classification.webp',
     github:
       'https://github.com/joneshshrestha/artificial-intelligence/tree/main/ML%20Binary%20Classification',
     tech: ['Python', 'Scikit-learn', 'NumPy', 'Pandas'],
@@ -25,7 +25,7 @@ const featuredProjects = [
     title: 'Delivery Route Optimization',
     description:
       'AI search algorithms (BFS, UCS, A*) for logistics with 4x speedup using heuristics.',
-    image: '/img/delivery-route.png',
+    image: '/img/delivery-route.webp',
     github:
       'https://github.com/joneshshrestha/artificial-intelligence/tree/main/Delivery%20Route%20Finder',
     tech: ['Python', 'JSON', 'Graph Algorithms', 'Heuristic Search'],
@@ -34,7 +34,7 @@ const featuredProjects = [
   {
     title: 'Advanced Evolution Simulator',
     description: 'A simulation of bipedals that try to learn to walk as humans.',
-    image: '/img/advanced-evolution-simulator.jpg',
+    image: '/img/advanced-evolution-simulator.webp',
     github: 'https://github.com/adityathebe/evolutionSimulator',
     demo: 'https://adityathebe.github.io/evolutionSimulator/',
     tech: ['JavaScript', 'Matter.js', 'HTML5 Canvas', 'Genetic Algorithm'],
@@ -43,7 +43,7 @@ const featuredProjects = [
   {
     title: 'Evolution Simulator',
     description: 'JavaScript simulator for evolving artificial creatures with Tensorflow.js.',
-    image: '/img/evolution-simulator.jpg',
+    image: '/img/evolution-simulator.webp',
     github: 'https://github.com/joneshshrestha/Evolution-Simulator',
     demo: 'https://joneshshrestha.github.io/Evolution-Simulator/',
     tech: ['JavaScript', 'TensorFlow.js', 'HTML5 Canvas', 'Genetic Algorithm'],
@@ -154,12 +154,12 @@ const PortfolioPage = () => {
                   href={project.demo || project.github}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block h-64 bg-gray-50 dark:bg-gray-800"
+                  className="block aspect-video bg-gray-50 dark:bg-gray-800 overflow-hidden"
                 >
                   <img
                     src={project.image}
                     alt={project.title}
-                    className="w-full h-full object-cover rounded-t-lg"
+                    className="w-full h-full object-cover"
                   />
                 </a>
                 <div className="p-6">

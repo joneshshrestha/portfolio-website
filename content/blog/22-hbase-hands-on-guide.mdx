@@ -20,7 +20,7 @@ HBase is a powerful NoSQL database that runs on top of HDFS (Hadoop Distributed 
 
 Before diving into the hands-on portion, let's understand how HBase works. The system consists of three main components:
 
-![HBase System Architecture](/img/Hbase-system.png)
+![HBase System Architecture](/img/Hbase-system.webp)
 
 _HBase system architecture showing Master, Zookeeper, and RegionServer components. [Image reference](https://blueskyareahm.medium.com/try-hbase-shell-with-docker-image-6547d93df4be)_
 
@@ -157,7 +157,7 @@ View the data:
 scan 'employees'
 ```
 
-![First HBase Table](/img/hbase-first-table.jpg)
+![First HBase Table](/img/hbase-first-table.webp)
 
 _Initial employee table showing private addresses and SSNs for three employees_
 
@@ -179,7 +179,7 @@ put 'employees', 'ID1', 'public:email', 'jonesh@microsoft.com'
 put 'employees', 'ID2', 'public:email', 'sakshi@google.com'
 ```
 
-![Expanded Table](/img/hbase-expanded-table.jpg)
+![Expanded Table](/img/hbase-expanded-table.webp)
 
 _Employee table after adding dates of birth, phone numbers, salaries, and email addresses_
 
@@ -194,7 +194,7 @@ put 'employees', 'ID1', 'work:department', 'Azure AI'
 put 'employees', 'ID2', 'work:department', 'Microsoft Intelligence'
 ```
 
-![Work Family](/img/hbase-work-family.jpg)
+![Work Family](/img/hbase-work-family.webp)
 
 _Complete employee table with work information including positions and departments_
 

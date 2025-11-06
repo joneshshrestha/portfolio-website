@@ -276,7 +276,6 @@ export const query = graphql`
   query {
     allMdx(
       sort: { frontmatter: { date: DESC } }
-      filter: { fields: { slug: { regex: "/^/blog//" } } }
     ) {
       nodes {
         id

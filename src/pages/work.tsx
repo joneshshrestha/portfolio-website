@@ -17,25 +17,25 @@ const workExperiences = [
   {
     company: 'Kathmandu University',
     companyUrl: 'https://comp.ku.edu.np/',
-    logo: '/img/ku-logo.jpeg',
+    logo: '/img/ku-logo.webp',
     role: 'Machine Learning Researcher: Nepali image captioning using CNN and Transformer, optimizing accuracy.',
   },
   {
     company: 'Leapfrog Technology, Inc.',
     companyUrl: 'https://www.lftechnology.com/',
-    logo: '/img/leapfrog-logo.png',
+    logo: '/img/leapfrog-logo.webp',
     role: 'Software Engineer: Crafted TuTangle and Traveler websites, adept in Vanilla JavaScript web apps.',
   },
   {
     company: 'LIS Nepal Pvt. Ltd.',
     companyUrl: 'https://lisnepal.com.np/',
-    logo: '/img/lisnepal-logo.jpeg',
+    logo: '/img/lisnepal-logo.webp',
     role: 'Business Intelligence Developer: Retail analytics solutions, SQL, ODI, Power BI, MicroStrategy reporting.',
   },
   {
     company: 'Fiverr',
     companyUrl: 'https://www.fiverr.com/joneshshrestha',
-    logo: '/img/fiverr-logo.png',
+    logo: '/img/fiverr-logo.webp',
     role: 'Freelancer: Created user-friendly web apps, tracked code changes with version control.',
   },
 ];
