@@ -88,3 +88,31 @@
     @apply border border-gray-300 dark:border-gray-700 px-4 py-2;
   }
 }
+
+/* KaTeX dark mode support */
+.dark .katex {
+  color: rgb(229, 231, 235) !important;
+}
+
+.dark .katex .mord,
+.dark .katex .mbin,
+.dark .katex .mrel,
+.dark .katex .mop,
+.dark .katex .mpunct,
+.dark .katex .mopen,
+.dark .katex .mclose,
+.dark .katex .minner {
+  color: rgb(229, 231, 235) !important;
+}
+
+.dark .katex .frac-line {
+  border-bottom-color: rgb(229, 231, 235) !important;
+}
+
+.dark .katex .sqrt > .root {
+  border-top-color: rgb(229, 231, 235) !important;
+}
+
+.dark .katex .vlist-t {
+  color: rgb(229, 231, 235) !important;
+}

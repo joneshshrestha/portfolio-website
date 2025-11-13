@@ -1,0 +1,280 @@
+---
+title: 'Building a Joke Recommendation System Using Item-Based Collaborative Filtering'
+date: '2025-11-12'
+author: 'Jonesh Shrestha'
+category: 'Machine Learning'
+tags:
+  [
+    'Recommendation Systems',
+    'Collaborative Filtering',
+    'Item-Based Filtering',
+    'Pearson Correlation',
+    'Cosine Similarity',
+    'SVD',
+    'Jester Dataset',
+  ]
+summary: 'Built an item-based joke recommendation system using the modified Jester dataset (100 jokes, 1,000 users). Compared Pearson correlation and cosine similarity measures, implemented standard and SVD-based rating estimators, achieving 3.64 MAE with SVD vs 3.68 MAE with standard estimator. Developed scalable approach with precomputed item-item similarity matrix for fast predictions. Demonstrates collaborative filtering fundamentals, similarity metrics comparison, and dimensionality reduction techniques for recommendation systems.'
+---
+
+<div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg">
+
+## TL;DR
+
+Using the modified Jester online joke ratings dataset, I built an item-based recommender that suggests jokes to users based on how similarly other users rate the same jokes. The dataset contains 100 jokes and 1,000 users with ratings on a 20-point scale; missing ratings are encoded as zero. I compared Pearson and cosine similarity measures, implemented a standard and SVD-based rating estimator, measured mean absolute error (MAE) across users, and wrote a scalable version that precomputes an item-item similarity matrix. Pearson correlation produced more conservative recommendations because it adjusts for user bias, while cosine similarity yielded slightly different rankings by focusing on vector orientation. The SVD-based estimator reduced prediction error from 3.68 to 3.64 MAE and the model-based approach enabled fast predictions and flexible k-nearest item choices.
+
+</div>
+
+## Introduction
+
+Recommendation systems power everything from Netflix queues to news feeds. While many tutorials focus on movies or songs, jokes are a surprisingly rich domain for exploring collaborative filtering: people's sense of humor varies widely, and the only way to guess what will make you laugh is to examine which jokes you and others like. The modified Jester dataset provides ratings on 100 jokes from 1,000 anonymous users on a 1-21 scale (after normalization, 1 is lowest and 21 highest). A zero indicates the user hasn't seen that joke. I built an item-based recommender that compares jokes rather than users, calculated similarity in multiple ways, and evaluated how well the system predicts withheld ratings.
+
+## Loading the Jester Data
+
+First I loaded the jokes and ratings into Python. The jokes.csv file maps joke IDs to their punchlines, and modified_jester_data.csv contains a 1,000×100 rating matrix. I used the helper functions from itemBasedRec.py to read the jokes:
+
+```python
+import pandas as pd
+from itemBasedRec import load_jokes
+
+# load the joke texts
+jokes = load_jokes("jokes/jokes.csv")
+print(jokes[:5])
+
+# load the ratings matrix into a DataFrame then convert to numpy
+jester_data_df = pd.read_csv("jokes/modified_jester_data.csv", header=None)
+jester_data_np = jester_data_df.to_numpy()
+```
+
+The first five jokes include classic one-liners like a cancer/Alzheimer's misdirection and a pedophile joke. Ratings range from 1 to 21 with many missing values set to 0. Converting to a NumPy array lets us feed the matrix into the recommender functions.
+
+## Item-Based Collaborative Filtering
+
+Item-based collaborative filtering predicts how a user will rate an item by comparing that item's ratings vector to the vectors of other items. In the provided module, three similarity metrics are defined:
+
+- **Euclidean similarity**: converts Euclidean distance to a similarity score in [0,1].
+- **Pearson correlation**: centers each vector and measures linear correlation; this removes individual rating biases.
+- **Cosine similarity**: measures the angle between two vectors and normalizes for magnitude.
+
+To estimate a user's rating for an unrated joke, the standEst function computes a weighted average of the user's ratings on items similar to the target item. A more sophisticated svdEst version projects items into a low-rank latent space via singular value decomposition (SVD) and then performs the weighted average in that space.
+
+## Under the Hood: Similarity and Prediction Functions
+
+The helper module itemBasedRec.py implements these metrics and estimators explicitly. The Euclidean, Pearson, and Cosine similarities are each normalised to lie in the [0,1] range so that higher scores mean more similar. The code below defines the similarity functions:
+
+```python
+import numpy as np
+from numpy.linalg import norm
+
+def euclidSim(inA, inB):
+    # convert Euclidean distance into similarity
+    return 1.0 / (1.0 + norm(inA - inB))
+
+def pearsonSim(inA, inB):
+    # return 1 if the vectors are too small to correlate
+    if len(inA) < 3:
+        return 1.0
+    # 0.5 + 0.5× correlation scales output to [0,1]
+    return 0.5 + 0.5 * np.corrcoef(inA, inB, rowvar=False)[0][1]
+
+def cosineSim(inA, inB):
+    # compute the cosine of the angle between the vectors
+    num = np.dot(inA, inB)
+    denom = norm(inA) * norm(inB)
+    return 0.5 + 0.5 * (num / denom)
+```
+
+The standEst function loops over all items the user has rated and computes a weighted average of those ratings using one of the similarity functions as weights. The svdEst variant first computes a singular value decomposition of the entire rating matrix and projects items into a four-dimensional latent space before performing the same weighted averaging. Their implementations are summarised here:
+
+```python
+def standEst(dataMat, user, simMeas, item):
+    n = dataMat.shape[1]
+    simTotal = 0.0
+    ratSimTotal = 0.0
+    for j in range(n):
+        userRating = dataMat[user, j]
+        if userRating == 0:  # skip unrated items
+            continue
+        # find users who rated both the target item and item j
+        overlap = np.nonzero((dataMat[:, item] > 0) & (dataMat[:, j] > 0))[0]
+        similarity = simMeas(dataMat[overlap, item], dataMat[overlap, j]) if len(overlap) else 0
+        simTotal += similarity
+        ratSimTotal += similarity * userRating
+    return 0 if simTotal == 0 else ratSimTotal / simTotal
+
+def svdEst(dataMat, user, simMeas, item):
+    # compute SVD and keep top 4 singular values
+    data = np.asmatrix(dataMat)
+    U, Sigma, VT = np.linalg.svd(data)
+    Sig4 = np.diag(Sigma[:4])
+    # transform items into the latent space
+    xformedItems = data.T @ U[:, :4] @ np.linalg.inv(Sig4)
+    n = dataMat.shape[1]
+    simTotal = 0.0
+    ratSimTotal = 0.0
+    for j in range(n):
+        userRating = dataMat[user, j]
+        if userRating == 0 or j == item:
+            continue
+        similarity = simMeas(xformedItems[item, :].T, xformedItems[j, :].T)
+        simTotal += similarity
+        ratSimTotal += similarity * userRating
+    return 0 if simTotal == 0 else ratSimTotal / simTotal
+```
+
+To evaluate prediction accuracy, the cross-validation functions cross_validate_user and test iterate through each user, withhold a proportion of their ratings, and compute the mean absolute error (MAE). The simplified pseudocode is:
+
+```python
+def cross_validate_user(dataMat, user, test_ratio, estMethod, simMeas):
+    # choose a random subset of the user's rated items
+    rated_items = np.nonzero(dataMat[user] > 0)[0]
+    test_size = int(test_ratio * len(rated_items))
+    test_indices = np.random.randint(0, len(rated_items), test_size)
+    withheld_items = rated_items[test_indices]
+    # temporarily remove these ratings
+    original_ratings = dataMat[user].copy()
+    dataMat[user, withheld_items] = 0
+    # compute prediction error on withheld items
+    error = sum(abs(estMethod(dataMat, user, simMeas, item) - original_ratings[item]) for item in withheld_items)
+    # restore ratings
+    dataMat[user] = original_ratings
+    return error, len(withheld_items)
+
+def test(dataMat, test_ratio, estMethod, simMeas):
+    total_error = 0.0
+    total_count = 0
+    for user in range(dataMat.shape[0]):
+        user_error, user_count = cross_validate_user(dataMat, user, test_ratio, estMethod, simMeas)
+        total_error += user_error
+        total_count += user_count
+    return total_error / total_count
+```
+
+This procedure was used to compute the MAE reported later. Although we only reported results for Pearson similarity in the main text, these functions make it easy to plug in Euclidean or cosine similarity and compare how they perform.
+
+## Making Recommendations
+
+The recommend function returns the top k jokes for a given user based on a similarity function and estimator. I wrote a helper to format the results:
+
+```python
+def recommendation_output(recommendations, jokes):
+    for joke_id, score in recommendations:
+        print(f"Joke ID: {joke_id}")
+        print(f"Predicted score: {score:.3f}")
+        print(f"Joke: {jokes[joke_id]}\n")
+```
+
+### User 117
+
+Running the recommender for user 117 with Pearson similarity and the standard estimator produced the following top five jokes:
+
+- **Joke ID: 97** - Predicted score: 10.611  
+  Joke: Age and Womanhood…
+
+- **Joke ID: 99** - Predicted score: 10.608  
+  Joke: Difference between greeting a Queen and the President…
+
+- **Joke ID: 92** - Predicted score: 10.590  
+  Joke: Engineer negotiating salary…
+
+- **Joke ID: 75** - Predicted score: 10.574  
+  Joke: Clever woman and a bottle of wine…
+
+- **Joke ID: 80** - Predicted score: 10.572  
+  Joke: Asian man exchanging yen for dollars…
+
+Using cosine similarity yields almost the same set except that joke 88 (a lighthouse vs. aircraft carrier conversation) replaces joke 80. The difference stems from how Pearson subtracts each user's mean rating, capturing relative preferences, while cosine only normalizes vector length.
+
+### User 441
+
+For user 441 I compared the standard estimator with the SVD-based estimator. With the standard estimator and Pearson similarity, the recommender suggested jokes about an elderly couple discussing "super sex," Bill and Hillary, a redneck trailer joke, a Clinton punchline, and an employer-applicant exchange. The SVD-based estimator produced a different list; only the Bill & Hillary joke appeared in both. Because the SVD projects jokes into a latent space, it can detect relationships even when there is little direct overlap in user ratings. The latent representation smooths out the sparsity of the matrix and yields more nuanced recommendations.
+
+## Evaluating Prediction Accuracy
+
+To quantify performance, I implemented the test function, which performs leave-some-ratings-out cross-validation for each user and returns the mean absolute error (MAE). I reserved 20% of each user's ratings as a test set and compared the absolute differences between predicted and true ratings. Pearson similarity with the standard estimator achieved an MAE of 3.6779. Replacing standEst with the SVD-based svdEst improved the MAE to 3.6369. Although the improvement is modest, it shows that dimensionality reduction can capture global structure not apparent from raw ratings.
+
+## Finding Similar Jokes
+
+Sometimes you're less interested in predicting ratings and more curious about which jokes resemble a given joke. I wrote print_most_similar_jokes to compute similarity scores between a query joke and all others. The function iterates over every joke, identifies users who rated both the query and the candidate, computes a similarity score using Pearson or cosine similarity, and returns the top k matches. The implementation looks like this:
+
+```python
+def print_most_similar_jokes(dataMat, jokes, joke_id, k, simMea):
+    print(f'Selected joke: Joke # {joke_id}')
+    print(f'{jokes[joke_id]}\n')
+    print(f'Top {k} recommendations are :\n')
+
+    similarities = {}
+    n = dataMat.shape[1]
+    for j in range(n):
+        if j == joke_id:
+            continue
+        overlap = np.nonzero((dataMat[:, joke_id] > 0) & (dataMat[:, j] > 0))[0]
+        similarity = simMea(dataMat[overlap, joke_id], dataMat[overlap, j]) if len(overlap) else 0
+        similarities[j] = similarity
+    # sort by similarity and take the top k
+    top_k = sorted(similarities.items(), key=itemgetter(1), reverse=True)[:k]
+    for idx, score in top_k:
+        print(f'Joke # {idx} (Similarity: {score:.3f}):')
+        print(f'{jokes[idx]}\n')
+```
+
+Executing this function prints the selected joke followed by the top k similar jokes along with their similarity scores. For example, if we query for joke 9 ("Two cannibals are eating a clown - does this taste funny to you?"), Pearson correlation identifies jokes about twin adoption puns, a horse walking into a bar, and a waiter's morbid chicken comment. Cosine similarity, on the other hand, recommends a story about an 80-year-old widower boasting to a priest, the same waiter's chicken joke, and a Czechoslovakian eye-exam pun. This contrast reinforces how Pearson down-weights uniformly high or low ratings, while cosine emphasises angular alignment.
+
+## A Scalable, Model-Based Approach
+
+The original functions compute item similarities on the fly for every prediction, which becomes expensive as the number of jokes grows. To address scalability, I precomputed an item-item similarity matrix and built a function to predict a rating from the k most similar jokes the user has rated:
+
+```python
+def similarity_matrix(dataMat, metric):
+    # compute a full n×n similarity matrix (n = number of jokes)
+    n = dataMat.shape[1]
+    simMat = np.zeros((n, n))
+    for i in range(n):
+        for j in range(i, n):
+            overlap = np.nonzero((dataMat[:, i] > 0) & (dataMat[:, j] > 0))[0]
+            sim = metric(dataMat[overlap, i], dataMat[overlap, j]) if len(overlap) else 0
+            simMat[i, j] = simMat[j, i] = sim
+    return simMat
+
+def item_based_predict(dataMat, simMat, user, item, k):
+    # predict rating on 'item' for 'user' using k most similar items
+    user_ratings = dataMat[user]
+    rated_items = np.where(user_ratings > 0)[0]
+    sims = simMat[item, rated_items]
+    top_k_idx = sims.argsort()[::-1][:k]
+    top_k_sims = sims[top_k_idx]
+    top_k_ratings = user_ratings[rated_items[top_k_idx]]
+    return 0 if top_k_sims.sum() == 0 else (top_k_sims @ top_k_ratings) / top_k_sims.sum()
+```
+
+With the similarity matrix in hand, I predicted ratings for the top two items recommended earlier. For user 117, items 97 and 99 were predicted at 10.686 and 11.891 with Pearson, and 12.473 and 12.487 with cosine. For user 441, items 79 and 5 scored 15.622 and 15.891 using Pearson, and 15.770 and 17.405 using cosine. Precomputing the similarity matrix means the heavy lifting happens once; subsequent predictions are just vector lookups and dot products.
+
+## Key Takeaways
+
+1. **Similarity Metrics Matter**: Pearson correlation adjusts for user bias by centering ratings, producing more conservative recommendations. Cosine similarity focuses on vector orientation and can surface different patterns.
+
+2. **SVD Improves Predictions**: The SVD-based estimator reduced MAE from 3.68 to 3.64 by capturing latent factors in the rating matrix, smoothing out sparsity issues.
+
+3. **Precomputation Enables Scalability**: Building an item-item similarity matrix upfront allows fast predictions through simple vector operations, making the system practical for larger datasets.
+
+4. **Cross-Validation is Essential**: Leave-some-ratings-out validation provides realistic performance estimates by testing on withheld data the model hasn't seen.
+
+5. **Item-Based vs User-Based**: Item-based filtering compares items directly, which is often more stable than user-based approaches since items change less frequently than user preferences.
+
+## Conclusion
+
+Building a joke recommender taught me how subtle differences in similarity metrics and estimation methods translate into distinct recommendations. Pearson correlation generally yields more conservative lists because it centres each user's ratings and removes bias, while cosine similarity emphasises angular agreement and can surface jokes that share similar rating patterns even if one is consistently rated higher. Incorporating SVD marginally improved prediction accuracy by capturing latent factors, and precomputing an item-item similarity matrix made the algorithm scalable. Although the domain is light-hearted, the techniques generalize to more serious applications, anywhere you need to suggest items based on sparse, noisy ratings.
+
+---
+
+## 📓 Jupyter Notebook
+
+Want to explore the complete code and run it yourself? Access the full implementation with detailed explanations:
+
+**[→ View Python Script on GitHub](https://github.com/joneshshrestha/machine-learning-python/blob/main/Item-based%20Joke%20Recommendation/itemBasedRec.py)**
+
+**[→ View Jupyter Notebook on GitHub](https://github.com/joneshshrestha/machine-learning-python/blob/main/Item-based%20Joke%20Recommendation/joke-recommendation.ipynb)**
+
+You can also run it interactively:
+
+- [Open Notebook in Google Colab](https://colab.research.google.com/github/joneshshrestha/machine-learning-python/blob/main/Item-based%20Joke%20Recommendation/joke-recommendation.ipynb)
+- [Open Notebook in Binder](https://mybinder.org/v2/gh/joneshshrestha/machine-learning-python/main?filepath=Item-based%20Joke%20Recommendation/joke-recommendation.ipynb)

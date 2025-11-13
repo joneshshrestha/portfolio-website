@@ -1,0 +1,230 @@
+---
+title: 'Dimensionality Reduction for Image Segmentation: Does PCA Help Random Forests?'
+date: '2025-11-13'
+author: 'Jonesh Shrestha'
+category: 'Machine Learning'
+tags:
+  [
+    'PCA',
+    'Dimensionality Reduction',
+    'Random Forest',
+    'Image Classification',
+    'Image Segmentation',
+    'Hyperparameter Tuning',
+    'GridSearchCV',
+  ]
+summary: 'Explored the Image Segmentation dataset (2,310 regions, 19 features) to compare Random Forest performance on raw features versus PCA-compressed features. Found that nine principal components capture over 95% variance, but PCA + Random Forest decreased cross-validation accuracy from 96.9% to 91.4%. After hyperparameter tuning via GridSearchCV, the PCA pipeline achieved 94.3% test accuracy, still trailing the baseline. Demonstrates that dimensionality reduction can improve efficiency but may discard discriminative features important for strong learners like Random Forest.'
+---
+
+<div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-6 my-8 rounded-r-lg">
+
+## TL;DR
+
+I explored the Image Segmentation dataset from the UCI machine learning repository, which describes 2,310 segmented regions (e.g., brick, sky, foliage, window) with 19 numerical attributes. The goal was to compare classification performance of a Random Forest on the raw features versus after compressing them with Principal Component Analysis (PCA). I split the data into 80% training and 20% testing and fit a StandardScaler only on the training set to avoid leakage. PCA showed that nine principal components capture over 95% of the variance, but a pipeline with PCA and a default Random Forest actually decreased cross-validation accuracy from 96.9% to 91.4%. After tuning hyperparameters via grid search, the PCA + Random Forest still trailed the baseline but achieved a respectable 94.3% test accuracy. The experiment highlights that dimensionality reduction can improve computational efficiency and mitigate multicollinearity, but it may discard features important for a strong learner like Random Forest.
+
+</div>
+
+## Introduction
+
+Image segmentation tasks partition an image into meaningful regions (e.g., identifying sky versus building versus vegetation). One of the classic tabular datasets for this problem is the Image Segmentation dataset from the UCI repository. Each example corresponds to a small patch cropped from a larger photo and is labelled with one of seven classes (such as brickface, sky, foliage, cement, window, path, or grass). There are 19 features measuring properties like region centroid, pixel count, short-line density, and hue. Because the features are numeric and vary on different scales, we standardise them before feeding them to a classifier. I was curious whether compressing the 19-dimensional space into a lower-dimensional subspace via PCA would help or hurt performance when using Random Forest.
+
+## Loading and Exploring the Data
+
+The notebook loads the CSV file and examines the first few rows to understand the structure. Features include centroid coordinates, pixel counts, and colour statistics. For example, the first five rows look like this:
+
+```python
+import pandas as pd
+
+# Load the dataset (assumes the first column is the class label)
+col_names = [
+    "class", "region-centroid-col", "region-centroid-row", "region-pixel-count",
+    "short-line-density-5", "short-line-density-2", "vedge-mean", "vedge-sd",
+    "hedge-mean", "hedge-sd", "intensity-mean", "rawred-mean", "rawblue-mean",
+    "rawgreen-mean", "exred-mean", "exblue-mean", "exgreen-mean",
+    "value-mean", "saturation-mean", "hue-mean"
+]
+
+data = pd.read_csv('segmentation.csv', header=None, names=col_names)
+data.head()
+```
+
+After dropping the class labels, we split the data into features X and labels y and perform an 80/20 train/test split using train_test_split. The training set contains 1,680 samples while the test set has 420 samples.
+
+## Scaling and Performing PCA
+
+Because the features span different ranges, I fit a StandardScaler on the training set and transform both train and test sets accordingly. It's critical to fit the scaler only on the training data to avoid leaking test information into the model. The next step is to perform PCA:
+
+```python
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+
+# Standardise the features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Fit PCA on the scaled training data
+pca = PCA()
+pca.fit(X_train_scaled)
+
+# Explained variance ratios
+explained_variance = pca.explained_variance_ratio_
+cum_variance = explained_variance.cumsum()
+
+print('Explained variance for first few components:', explained_variance[:5])
+print('Cumulative variance for first few components:', cum_variance[:5])
+```
+
+The first component captures roughly 42% of the variance, the second about 16%, and the next few about 10% each. Summing the eigenvalues reveals that the first nine components account for at least 95% of the total variance. I visualised the scree plot and drew a horizontal line at 95% to identify this cutoff. The result shows that we can reduce the feature dimension from 19 to 9 while preserving most of the information.
+
+## Baseline Model: Random Forest without PCA
+
+My baseline classifier uses a Random Forest trained on the original scaled features. I put the StandardScaler and RandomForestClassifier into a pipeline to avoid data leakage and evaluated its performance with 10-fold cross-validation:
+
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score
+
+# Random Forest without PCA
+pipeline1 = Pipeline([
+    ('scaler', StandardScaler()),
+    ('rf', RandomForestClassifier(n_estimators=10, random_state=33))
+])
+
+scores = cross_val_score(pipeline1, X_train, y_train, cv=10)
+
+print('Cross-validation accuracy:', scores.mean())
+pipeline1.fit(X_train, y_train)
+print('Training accuracy:', pipeline1.score(X_train, y_train))
+print('Test accuracy:', pipeline1.score(X_test, y_test))
+```
+
+With 10 estimators, the baseline Random Forest achieved a 96.85% cross-validation accuracy and a 99.88% training accuracy. These results indicate the model fits the data extremely well and generalises nicely to unseen samples.
+
+## Random Forest with PCA
+
+Next, I introduced PCA into the pipeline. The only change was inserting a PCA(n_components=9) step after the scaler, with k determined from the scree plot. Otherwise, the Random Forest was identical:
+
+```python
+pipeline2 = Pipeline([
+    ('scaler', StandardScaler()),
+    ('pca', PCA(n_components=9)),
+    ('rf', RandomForestClassifier(n_estimators=10, random_state=33))
+])
+
+scores2 = cross_val_score(pipeline2, X_train, y_train, cv=10)
+print('Cross-validation accuracy with PCA:', scores2.mean())
+pipeline2.fit(X_train, y_train)
+print('Training accuracy:', pipeline2.score(X_train, y_train))
+print('Test accuracy:', pipeline2.score(X_test, y_test))
+```
+
+To my surprise, the PCA pipeline's cross-validation accuracy dropped to 91.43%. The training accuracy remained very high (~99.82%), suggesting that the Random Forest can easily fit the compressed representation. However, the reduction in cross-validation performance implies that removing features via PCA discarded some information useful for classification.
+
+## Hyperparameter Tuning with GridSearchCV
+
+Random Forests are robust but sensitive to parameters like the number of trees, maximum depth, and minimum samples per split. To give the PCA pipeline the best chance, I performed an exhaustive grid search over these parameters. I constructed a three-step pipeline (scaler → PCA → Random Forest) and searched over:
+
+- **n_estimators**: 1-200 (step 5)
+- **max_depth**: [1, 5, 10, 15, 20, 25]
+- **min_samples_split**: [2, 3, 4, 5]
+
+The code looks like this:
+
+```python
+from sklearn.model_selection import GridSearchCV
+
+pca_rf_pipe = Pipeline([
+    ('scaler', StandardScaler()),
+    ('pca', PCA(n_components=9)),
+    ('rf', RandomForestClassifier(random_state=33))
+])
+
+param_grid = {
+    'rf__n_estimators': range(1, 201, 5),
+    'rf__max_depth': [1, 5, 10, 15, 20, 25],
+    'rf__min_samples_split': [2, 3, 4, 5]
+}
+
+grid = GridSearchCV(pca_rf_pipe, param_grid=param_grid, cv=10, n_jobs=-1)
+grid.fit(X_train, y_train)
+
+print('Best parameters:', grid.best_params_)
+print('Best cross-val accuracy:', grid.best_score_)
+
+# Evaluate the tuned model on the test set
+best_model = grid.best_estimator_
+print('Training accuracy (tuned):', best_model.score(X_train, y_train))
+print('Test accuracy (tuned):', best_model.score(X_test, y_test))
+```
+
+The grid search found that 76 trees, a maximum depth of 15, and min_samples_split=3 yielded the highest cross-validated accuracy of 93.51%. When evaluated on the held-out test set, this tuned model achieved 94.29% accuracy with a training accuracy of 99.94%. Although still lower than the baseline Random Forest, it demonstrates that careful tuning can recover some of the performance lost by dimensionality reduction and still generalise well to unseen data.
+
+## Understanding the Results
+
+### Why Did PCA Hurt Performance?
+
+The Image Segmentation dataset has only 19 features, which is relatively low-dimensional. Random Forests excel at handling correlated features and can leverage all available information. By reducing to 9 components, we removed some discriminative signals that the Random Forest could have used.
+
+### When Would PCA Help?
+
+PCA would be more beneficial in scenarios with:
+
+- **High-dimensional data**: Hundreds or thousands of features where computational cost becomes prohibitive
+- **Strong multicollinearity**: When features are highly correlated, PCA can reduce redundancy
+- **Noise reduction**: When minor components represent noise rather than signal
+- **Memory constraints**: When storing or processing full feature sets is impractical
+
+### The Trade-off
+
+This experiment illustrates a fundamental trade-off in machine learning:
+
+- **Information retention**: PCA preserves variance, but variance isn't always the same as discriminative power
+- **Computational efficiency**: Fewer features mean faster training and prediction
+- **Model complexity**: Some models (like Random Forest) can handle high-dimensional data well, while others (like SVMs) benefit more from dimensionality reduction
+
+## Key Takeaways
+
+1. **PCA Doesn't Always Improve Performance**: Dimensionality reduction can discard information that's useful for classification, even when it preserves most of the variance.
+
+2. **Model Choice Matters**: Random Forests are robust to high-dimensional data and can leverage all features. Models that struggle with dimensionality (like linear models) might benefit more from PCA.
+
+3. **Hyperparameter Tuning Can Help**: Grid search recovered some performance lost to PCA, showing that proper tuning is essential when using dimensionality reduction.
+
+4. **Training Set Only for Preprocessing**: Fitting StandardScaler and PCA only on training data prevents data leakage and provides realistic performance estimates.
+
+5. **Variance ≠ Discriminative Power**: Preserving 95% of variance doesn't guarantee preserving 95% of classification-relevant information.
+
+6. **Cross-Validation Reveals True Performance**: The gap between training and cross-validation accuracy showed that PCA was losing important discriminative features.
+
+## Practical Applications
+
+### When to Use PCA with Random Forests
+
+- **Very high-dimensional data**: When you have hundreds or thousands of features
+- **Computational constraints**: When training time or memory is a bottleneck
+- **Feature engineering**: As a preprocessing step before other algorithms that struggle with dimensionality
+
+### When to Skip PCA
+
+- **Low-dimensional data**: When you have relatively few features (like our 19 features)
+- **Strong learners**: When using ensemble methods like Random Forest that handle high dimensions well
+- **Interpretability needs**: When you need to understand which original features matter
+
+## Conclusion
+
+This exploration illustrates that dimensionality reduction via PCA is not a guaranteed performance booster-especially when using a powerful ensemble like Random Forest. The Image Segmentation data only has 19 features, and the Random Forest can handle high-dimensional correlations without issue. Reducing the dimensionality to nine components removed some discriminative signals, resulting in a 5% drop in cross-validation accuracy. Hyperparameter tuning narrowed the gap but did not surpass the baseline. Nevertheless, PCA still offers benefits: it simplifies the feature space, reduces storage requirements, and can speed up models that scale poorly with dimensionality. In tasks with many more features or collinear inputs, PCA might improve both efficiency and accuracy. As always, the key is to experiment and evaluate rather than assume dimensionality reduction will automatically help.
+
+---
+
+## 📓 Jupyter Notebook
+
+Want to explore the complete code and run it yourself? Access the full Jupyter notebook with detailed implementations and visualizations:
+
+**[→ View Notebook on GitHub](https://github.com/joneshshrestha/machine-learning-python/blob/main/PCA%20in%20Image%20Classification/pca-image-classification.ipynb)**
+
+You can also run it interactively:
+
+- [Open in Google Colab](https://colab.research.google.com/github/joneshshrestha/machine-learning-python/blob/main/PCA%20in%20Image%20Classification/pca-image-classification.ipynb)
+- [Open in Binder](https://mybinder.org/v2/gh/joneshshrestha/machine-learning-python/main?filepath=PCA%20in%20Image%20Classification/pca-image-classification.ipynb)
