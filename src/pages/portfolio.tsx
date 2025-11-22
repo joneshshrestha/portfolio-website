@@ -12,12 +12,12 @@ const featuredProjects = [
     category: 'AI/ML',
   },
   {
-    title: 'Binary Classification ML Pipeline',
+    title: 'Developesr Programming Language Prediction',
     description:
       'Complete ML pipeline with cross-validation, grid search, and 77.5% test accuracy.',
     image: '/img/binary-classification.webp',
     github:
-      'https://github.com/joneshshrestha/artificial-intelligence/tree/main/ML%20Binary%20Classification',
+      'https://github.com/joneshshrestha/artificial-intelligence/tree/main/Developer%20Language%20Prediction',
     tech: ['Python', 'Scikit-learn', 'NumPy', 'Pandas'],
     category: 'AI/ML',
   },
