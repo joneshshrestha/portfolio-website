@@ -175,7 +175,7 @@ export default HomePage;
 export const query = graphql`
   query {
     allMdx(
-      sort: { frontmatter: { date: DESC } }
+      sort: { fields: [frontmatter___date], order: DESC }
       filter: { fields: { slug: { regex: "/^/blog//" } } }
       limit: 3
     ) {

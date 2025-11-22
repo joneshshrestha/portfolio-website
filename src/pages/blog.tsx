@@ -14,13 +14,15 @@ type BlogPageData = {
       fields: {
         slug: string;
       };
-      excerpt: string;
+      excerpt: string | null;
     }>;
   };
 };
 
 // Helper function to clean excerpt (remove TL;DR content)
-const cleanExcerpt = (excerpt: string): string => {
+const cleanExcerpt = (excerpt: string | null | undefined): string => {
+  if (!excerpt) return '';
+
   // Remove "TL;DR" and anything after it until we hit the main content
   const tldrPattern = /TL;DR[\s\S]*?(?=\n\n[A-Z]|$)/;
   let cleaned = excerpt.replace(tldrPattern, '').trim();
@@ -35,8 +37,8 @@ const cleanExcerpt = (excerpt: string): string => {
 
 // Helper function to categorize blogs based on keywords
 // Returns multiple categories when applicable
-const getBlogCategories = (title: string, excerpt: string): string[] => {
-  const text = (title + ' ' + excerpt).toLowerCase();
+const getBlogCategories = (title: string, excerpt: string | null | undefined): string[] => {
+  const text = (title + ' ' + (excerpt || '')).toLowerCase();
   const categories: string[] = [];
 
   if (
@@ -275,7 +277,7 @@ export default BlogPage;
 export const query = graphql`
   query {
     allMdx(
-      sort: { frontmatter: { date: DESC } }
+      sort: { fields: [frontmatter___date], order: DESC }
     ) {
       nodes {
         id

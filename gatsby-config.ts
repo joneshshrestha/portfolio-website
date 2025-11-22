@@ -19,6 +19,14 @@ const config: GatsbyConfig = {
       resolve: 'gatsby-plugin-mdx',
       options: {
         extensions: [`.mdx`, `.md`],
+        gatsbyRemarkPlugins: [
+          {
+            resolve: `gatsby-remark-images`,
+            options: {
+              maxWidth: 1200,
+            },
+          },
+        ],
         remarkPlugins: [remarkMath],
         rehypePlugins: [rehypeKatex],
       },
@@ -61,62 +69,62 @@ const config: GatsbyConfig = {
       },
     },
     // RSS Feed
-    {
-      resolve: `gatsby-plugin-feed`,
-      options: {
-        query: `
-          {
-            site {
-              siteMetadata {
-                title
-                description
-                siteUrl
-                site_url: siteUrl
-              }
-            }
-          }
-        `,
-        feeds: [
-          {
-            serialize: ({ query: { site, allMdx } }: any) => {
-              return allMdx.nodes.map((node: any) => {
-                return Object.assign({}, node.frontmatter, {
-                  description: node.excerpt,
-                  date: node.frontmatter.date,
-                  url: site.siteMetadata.siteUrl + node.fields.slug,
-                  guid: site.siteMetadata.siteUrl + node.fields.slug,
-                  custom_elements: [{ 'content:encoded': node.html }],
-                });
-              });
-            },
-            query: `
-              {
-                allMdx(
-                  sort: { frontmatter: { date: DESC } }
-                  filter: { fields: { slug: { regex: "/^\\\\/blog\\\\//" } } }
-                ) {
-                  nodes {
-                    excerpt
-                    html
-                    fields {
-                      slug
-                    }
-                    frontmatter {
-                      title
-                      date
-                      author
-                    }
-                  }
-                }
-              }
-            `,
-            output: '/rss.xml',
-            title: 'Jonesh Shrestha - AI/ML Blog RSS Feed',
-            match: '^/blog/',
-          },
-        ],
-      },
-    },
+    // {
+    //   resolve: `gatsby-plugin-feed`,
+    //   options: {
+    //     query: `
+    //       {
+    //         site {
+    //           siteMetadata {
+    //             title
+    //             description
+    //             siteUrl
+    //             site_url: siteUrl
+    //           }
+    //         }
+    //       }
+    //     `,
+    //     feeds: [
+    //       {
+    //         serialize: ({ query: { site, allMdx } }: any) => {
+    //           return allMdx.nodes.map((node: any) => {
+    //             return Object.assign({}, node.frontmatter, {
+    //               description: node.excerpt,
+    //               date: node.frontmatter.date,
+    //               url: site.siteMetadata.siteUrl + node.fields.slug,
+    //               guid: site.siteMetadata.siteUrl + node.fields.slug,
+    //               custom_elements: [{ 'content:encoded': node.html }],
+    //             });
+    //           });
+    //         },
+    //         query: `
+    //           {
+    //             allMdx(
+    //               sort: { frontmatter: { date: DESC } }
+    //               filter: { fields: { slug: { regex: "/^\\\\/blog\\\\//" } } }
+    //             ) {
+    //               nodes {
+    //                 excerpt
+    //                 html
+    //                 fields {
+    //                   slug
+    //                 }
+    //                 frontmatter {
+    //                   title
+    //                   date
+    //                   author
+    //                 }
+    //               }
+    //             }
+    //           }
+    //         `,
+    //         output: '/rss.xml',
+    //         title: 'Jonesh Shrestha - AI/ML Blog RSS Feed',
+    //         match: '^/blog/',
+    //       },
+    //     ],
+    //   },
+    // },
   ],
 };
 
